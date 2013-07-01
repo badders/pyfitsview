@@ -126,7 +126,7 @@ class MainWindow(QtGui.QMainWindow):
         if USE_CAMERA:
             self.ui.takeImage.clicked.connect(self.takeImage)
         else:
-            self.ui.takeImage.hide()
+            self.ui.allSkyControls.hide()
 
         self.ui.normalisation.addItems(self.fits.getScales().keys())
         self.ui.normalisation.currentIndexChanged.connect(self.scaleChange)
@@ -138,7 +138,7 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.cutUpperValue.valueChanged.connect(self.fits.setUpperCut)
         self.ui.cutLowerValue.valueChanged.connect(self.fits.setLowerCut)
 
-        self.ui.loadButton.clicked.connect(self.loadImage)
+        self.ui.actionOpen.triggered.connect(self.loadImage)
 
     def cmapChange(self, index):
         self.fits.setCMAP(matplotlib.cm.datad.keys()[index])
