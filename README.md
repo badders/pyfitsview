@@ -1,7 +1,7 @@
 pyfitsview
 ==========
 
-A basic image viewer for FITS images based on aplpy and Qt4. Optionally supports directly downloading images from the SBIG AllSky Cameera using [pyallsky](https://github.com/badders/pyallsky)
+A basic image viewer for FITS images based on aplpy and Qt4. Optionally supports directly downloading images from the SBIG AllSky Camera using [pyallsky](https://github.com/badders/pyallsky)
 
 Requirements
 ------------
