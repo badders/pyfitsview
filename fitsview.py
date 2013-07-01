@@ -9,7 +9,7 @@ import sys
 from PyQt4 import QtGui, QtCore, uic
 
 try:
-    from pyallsky.allsky import AllSkyCamera
+    from allsky import AllSkyCamera
     USE_CAMERA = True
 except ImportError:
     USE_CAMERA = False
