@@ -10,6 +10,7 @@ Requirements
 
 Python package requirements
 -------------------
+* [pyallsky](http://github.com/badders/pyallsky) (Optional)
 * [PyQt4](http://www.riverbankcomputing.com/software/pyqt/download)
 * [NumPy](http://www.numpy.org/)
 * [matplotlib](http://matplotlib.org/)
