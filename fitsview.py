@@ -21,6 +21,8 @@ class FitsView(FigureCanvasQTAgg):
     A FITS imageviewer base on matplotlib, rendering is done using the astropy
     library.
     """
+    hoverSignal = QtCore.pyqtSignal(int, int, int)
+
     def __init__(self):
         self._fig = Figure(dpi=96)
         FigureCanvasQTAgg.__init__(self, self._fig)
@@ -112,6 +114,16 @@ class FitsView(FigureCanvasQTAgg):
         self._scale = self.scales[str(scale)]
         self._updateDisplay()
 
+    def mouseMoveEvent(self, event):
+        FigureCanvasQTAgg.mouseMoveEvent(self, event)
+        if self.gc is not None:
+            pixel_x = event.x()
+            pixel_y = event.y()
+            inv = self._fig.gca().transData.inverted()
+            x, y = inv.transform((pixel_x, pixel_y))
+            value = self.gc._data[480-y][x]
+            self.hoverSignal.emit(x, y, value)
+
 class MainWindow(QtGui.QMainWindow):
     """
     Application User interface
@@ -120,6 +132,7 @@ class MainWindow(QtGui.QMainWindow):
         QtGui.QMainWindow.__init__(self)
         self.ui = uic.loadUi('viewer.ui')
         self.fits = FitsView()
+        self.fits.hoverSignal.connect(self.updateStatus)
         self.ui.fitsLayout.addWidget(self.fits)
         self.ui.show()
 
@@ -140,6 +153,14 @@ class MainWindow(QtGui.QMainWindow):
 
         self.ui.actionOpen.triggered.connect(self.loadImage)
 
+        self.status = QtGui.QLabel()
+        self.status.setText('No Image Loaded')
+        self.ui.statusBar().addWidget(self.status)
+
+    def updateStatus(self, x, y, value):
+        status = 'X: {} Y:{} Value: {}'.format(x, y, value)
+        self.status.setText(status)
+
     def cmapChange(self, index):
         self.fits.setCMAP(matplotlib.cm.datad.keys()[index])
 
@@ -149,6 +170,7 @@ class MainWindow(QtGui.QMainWindow):
     def loadImage(self):
         filen = QtGui.QFileDialog.getOpenFileName(caption='Load Fits File', filter='*.fits')
         self.fits.loadImage(str(filen))
+        self.status.setText('')
 
     def takeImage(self):
         self.progress = QtGui.QProgressDialog('Downloading Image from Camera ...', '', 0, 0)
@@ -161,6 +183,7 @@ class MainWindow(QtGui.QMainWindow):
         QtGui.QApplication.processEvents()
         self.fits.takeImage(self.ui.exposureTime.value(), self._takeImageProgress)
         self.progress.hide()
+        self.status.setText('')
 
     def _takeImageProgress(self, percent):
         self.progress.setValue(percent)

@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>AllSky Camera Viewer</string>
+   <string>Fits Image Viewer</string>
   </property>
   <property name="unifiedTitleAndToolBarOnMac">
    <bool>true</bool>
