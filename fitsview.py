@@ -5,6 +5,7 @@ from matplotlib.figure import Figure
 import aplpy
 from PyQt4 import QtGui, QtCore, uic
 import sys, os
+from serial.tools import list_ports
 from collections import OrderedDict
 
 try:
@@ -16,6 +17,14 @@ except ImportError:
 
 def getUiFile(name):
   return os.path.join(os.path.dirname(os.path.realpath( __file__ )), name)
+
+def list_serial_ports():
+    ports = []
+    for x in list_ports.comports():
+        port = x[0]
+        if port.count('Bluetooth') == 0:
+            ports.append(port)
+    return ports
 
 class FitsView(FigureCanvasQTAgg):
     """
@@ -130,12 +139,19 @@ class MainWindow(QtGui.QMainWindow):
     Application User interface
     """
     def __init__(self):
+        global USE_CAMERA
         QtGui.QMainWindow.__init__(self)
         self.ui = uic.loadUi(getUiFile('viewer.ui'))
         self.fits = FitsView()
         self.fits.hoverSignal.connect(self.updateStatus)
         self.ui.fitsLayout.addWidget(self.fits)
-        self.ui.show()
+
+        ports = list_serial_ports()
+
+        if len(ports) == 0:
+            USE_CAMERA = False
+        else:
+            self.ui.portChoice.addItems(ports)
 
         if USE_CAMERA:
             self.ui.takeImage.clicked.connect(self.takeImage)
@@ -158,6 +174,8 @@ class MainWindow(QtGui.QMainWindow):
         self.status.setText('No Image Loaded')
         self.ui.statusBar().addWidget(self.status)
 
+        self.ui.show()
+
     def updateStatus(self, x, y, value):
         status = 'X: {} Y:{} Value: {}'.format(x, y, value)
         self.status.setText(status)
@@ -174,6 +192,7 @@ class MainWindow(QtGui.QMainWindow):
         self.status.setText('')
 
     def takeImage(self):
+        port = str(self.ui.portChoice.currentText())
         self.progress = QtGui.QProgressDialog('Downloading Image from Camera ...', '', 0, 0)
         self.progress.setCancelButton(None)
         self.progress.setValue(0)
@@ -182,7 +201,7 @@ class MainWindow(QtGui.QMainWindow):
         self.progress.setModal(True)
         self.progress.show()
         QtGui.QApplication.processEvents()
-        self.fits.takeImage(self.ui.exposureTime.value(), self._takeImageProgress)
+        self.fits.takeImage(self.ui.exposureTime.value(), self._takeImageProgress, dev=port)
         self.progress.hide()
         self.status.setText('')
 
