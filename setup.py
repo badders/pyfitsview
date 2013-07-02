@@ -9,7 +9,9 @@ from setuptools import setup
 
 APP = ['fitsview.py']
 DATA_FILES = []
-OPTIONS = {'argv_emulation': True, "includes": ["sip", "PyQt4._qt"]}
+OPTIONS = {'argv_emulation': True, 'includes': ['sip', 'PyQt4._qt'],
+           'excludes': ['PyQt4.QtDesigner', 'PyQt4.QtNetwork', 'PyQt4.QtOpenGL', 'PyQt4.QtScript', 'PyQt4.QtSql', 'PyQt4.QtTest', 'PyQt4.QtWebKit', 'PyQt4.QtXml', 'PyQt4.phonon']
+           }
 
 setup(
     app=APP,
