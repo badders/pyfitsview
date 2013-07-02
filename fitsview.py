@@ -14,9 +14,8 @@ try:
 except ImportError:
     USE_CAMERA = False
 
-
 def getUiFile(name):
-  return os.path.join(os.path.dirname(os.path.realpath( __file__ )), name)
+  return os.path.join(os.path.dirname(os.path.realpath( __file__ )), 'ui', name)
 
 def list_serial_ports():
     ports = []
@@ -146,6 +145,7 @@ class MainWindow(QtGui.QMainWindow):
         self.fits.hoverSignal.connect(self.updateStatus)
         self.ui.fitsLayout.addWidget(self.fits)
 
+        self.ui.setWindowIcon(QtGui.QIcon(getUiFile('icon.svg')))
         ports = list_serial_ports()
 
         if len(ports) == 0:
