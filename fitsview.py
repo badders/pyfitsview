@@ -1,12 +1,11 @@
 import matplotlib
 matplotlib.use('Qt4Agg')
-
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import aplpy
-
-import sys
 from PyQt4 import QtGui, QtCore, uic
+import sys, os
+from collections import OrderedDict
 
 try:
     from allsky import AllSkyCamera
@@ -14,7 +13,9 @@ try:
 except ImportError:
     USE_CAMERA = False
 
-from collections import OrderedDict
+
+def getUiFile(name):
+  return os.path.join(os.path.dirname(os.path.realpath( __file__ )), name)
 
 class FitsView(FigureCanvasQTAgg):
     """
@@ -130,7 +131,7 @@ class MainWindow(QtGui.QMainWindow):
     """
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
-        self.ui = uic.loadUi('viewer.ui')
+        self.ui = uic.loadUi(getUiFile('viewer.ui'))
         self.fits = FitsView()
         self.fits.hoverSignal.connect(self.updateStatus)
         self.ui.fitsLayout.addWidget(self.fits)
