@@ -39,6 +39,11 @@ def list_serial_ports():
             ports.append(port)
     return ports
 
+def get_colour_maps():
+    maps = matplotlib.cm.datad.keys()
+    maps.sort(key=str.lower)
+    return maps
+
 class FitsView(FigureCanvasQTAgg):
     """
     A FITS imageviewer base on matplotlib, rendering is done using the astropy
@@ -177,8 +182,8 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.normalisation.addItems(self.fits.getScales().keys())
         self.ui.normalisation.currentIndexChanged.connect(self.scaleChange)
 
-        self.ui.colourMap.addItems(matplotlib.cm.datad.keys())
-        self.ui.colourMap.setCurrentIndex(matplotlib.cm.datad.keys().index('gray'))
+        self.ui.colourMap.addItems(get_colour_maps())
+        self.ui.colourMap.setCurrentIndex(get_colour_maps().index('gray'))
 
         self.ui.colourMap.currentIndexChanged.connect(self.cmapChange)
         self.ui.cutUpperValue.valueChanged.connect(self.fits.setUpperCut)
@@ -197,7 +202,7 @@ class MainWindow(QtGui.QMainWindow):
         self.status.setText(status)
 
     def cmapChange(self, index):
-        self.fits.setCMAP(matplotlib.cm.datad.keys()[index])
+        self.fits.setCMAP(get_colour_maps()[index])
 
     def scaleChange(self, index):
         self.fits.setScale(self.ui.normalisation.itemText(index))
@@ -233,5 +238,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-
 
