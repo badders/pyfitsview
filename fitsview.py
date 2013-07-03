@@ -1,11 +1,25 @@
+"""
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>
+"""
+import sys
+import os
 import matplotlib
-matplotlib.use('Qt4Agg')
+import aplpy
+from collections import OrderedDict
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-import aplpy
 from PyQt4 import QtGui, QtCore, uic
-import sys, os
-from collections import OrderedDict
 
 try:
     from serial.tools import list_ports
@@ -40,12 +54,12 @@ class FitsView(FigureCanvasQTAgg):
                                         QtGui.QSizePolicy.Expanding)
         self._fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
         self.__taking = False
-        self._scale = 'linear'
+        self._scale = 'log'
         self.scales = OrderedDict()
+        self.scales['Logarithmic'] = 'log'
         self.scales['Linear'] =  'linear'
         self.scales['Square Root'] = 'sqrt'
         self.scales['Power'] = 'power'
-        self.scales['Logarithmic'] = 'log'
         self.scales['Arc Sinh'] = 'arcsinh'
         self.gc = None
         self.upperCut = 99.75
@@ -84,6 +98,8 @@ class FitsView(FigureCanvasQTAgg):
                                     cmap=self.cmap)
             self.gc.axis_labels.hide()
             self.gc.tick_labels.hide()
+            self.gc.ticks.hide()
+            self.gc.frame.set_linewidth(0)
 
     def setCMAP(self, cmap):
         """
@@ -177,7 +193,7 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.show()
 
     def updateStatus(self, x, y, value):
-        status = 'X: {} Y:{} Value: {}'.format(x, y, value)
+        status = 'X: {:>4}\tY: {:>4}\tValue: {}'.format(x, y, value)
         self.status.setText(status)
 
     def cmapChange(self, index):
