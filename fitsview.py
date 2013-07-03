@@ -188,8 +188,9 @@ class MainWindow(QtGui.QMainWindow):
 
     def loadImage(self):
         filen = QtGui.QFileDialog.getOpenFileName(caption='Load Fits File', filter='*.fits')
-        self.fits.loadImage(str(filen))
-        self.status.setText('')
+        if filen != '':
+            self.fits.loadImage(str(filen))
+            self.status.setText('')
 
     def takeImage(self):
         port = str(self.ui.portChoice.currentText())
