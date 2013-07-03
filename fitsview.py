@@ -21,6 +21,7 @@ from collections import OrderedDict
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PyQt4 import QtGui, QtCore, uic
+from functools import wraps
 
 try:
     from serial.tools import list_ports
@@ -52,6 +53,14 @@ class FitsView(FigureCanvasQTAgg):
     """
     hoverSignal = QtCore.pyqtSignal(int, int, int)
 
+    def refresh(f):
+        @wraps(f)
+        def _refresh(*args, **kwargs):
+            ret = f(*args, **kwargs)
+            args[0]._updateDisplay()
+            return ret
+        return _refresh
+            
     def __init__(self):
         self._fig = Figure(dpi=96)
         FigureCanvasQTAgg.__init__(self, self._fig)
@@ -72,14 +81,25 @@ class FitsView(FigureCanvasQTAgg):
         self.lowerCut = 0.25
         self.cmap = 'gray'
 
+    def _updateDisplay(self):
+        if self.gc is not None:
+            self.gc.show_colorscale(pmin=self.lowerCut, pmax=self.upperCut,
+                                    stretch=self._scale, aspect='auto',
+                                    cmap=self.cmap)
+            self.gc.axis_labels.hide()
+            self.gc.tick_labels.hide()
+            self.gc.ticks.hide()
+            self.gc.frame.set_linewidth(0)
+
+    @refresh
     def loadImage(self, filename):
         """
         Load a fits image from disk
         filename -- full path to the image file
         """
         self.gc = aplpy.FITSFigure(filename, figure=self._fig)
-        self._updateDisplay()
 
+    @refresh
     def takeImage(self, exposure, progress, dev='/dev/tty.usberial'):
         """
         Take an image using the All Sky camera
@@ -94,42 +114,31 @@ class FitsView(FigureCanvasQTAgg):
         image = cam.get_image(exposure=exposure, progress_callback=progress)
         self._max = image.data.max()
         self.gc = aplpy.FITSFigure(image, figure=self._fig)
-        self._updateDisplay()
         self._taking = False
 
-    def _updateDisplay(self):
-        if self.gc is not None:
-            self.gc.show_colorscale(pmin=self.lowerCut, pmax=self.upperCut,
-                                    stretch=self._scale, aspect='auto',
-                                    cmap=self.cmap)
-            self.gc.axis_labels.hide()
-            self.gc.tick_labels.hide()
-            self.gc.ticks.hide()
-            self.gc.frame.set_linewidth(0)
-
+    @refresh
     def setCMAP(self, cmap):
         """
         Set the colourmap for the image display
         cmap -- colourmap name (see matplotlib.cm)
         """
         self.cmap = cmap
-        self._updateDisplay()
 
+    @refresh
     def setUpperCut(self, value):
         """
         Set the upper limit for display cut
         value -- percentage for upper limit
         """
         self.upperCut = value
-        self._updateDisplay()
 
+    @refresh
     def setLowerCut(self, value):
         """
         Set the lower limit for display cut
         value -- percentage for the lower limit
         """
         self.lowerCut = value
-        self._updateDisplay()
 
     def getScales(self):
         """
@@ -137,13 +146,13 @@ class FitsView(FigureCanvasQTAgg):
         """
         return self.scales
 
+    @refresh
     def setScale(self, scale):
         """
         Set normalisation scale
         scale -- desired scale
         """
         self._scale = self.scales[str(scale)]
-        self._updateDisplay()
 
     def mouseMoveEvent(self, event):
         FigureCanvasQTAgg.mouseMoveEvent(self, event)
