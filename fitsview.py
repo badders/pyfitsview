@@ -5,10 +5,10 @@ from matplotlib.figure import Figure
 import aplpy
 from PyQt4 import QtGui, QtCore, uic
 import sys, os
-from serial.tools import list_ports
 from collections import OrderedDict
 
 try:
+    from serial.tools import list_ports
     from allsky import AllSkyCamera
     USE_CAMERA = True
 except ImportError:
@@ -130,7 +130,7 @@ class FitsView(FigureCanvasQTAgg):
             pixel_y = event.y()
             inv = self._fig.gca().transData.inverted()
             x, y = inv.transform((pixel_x, pixel_y))
-            value = self.gc._data[480-y][x]
+            value = self.gc._data[480 - y][x]
             self.hoverSignal.emit(x, y, value)
 
 class MainWindow(QtGui.QMainWindow):
@@ -146,16 +146,16 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.fitsLayout.addWidget(self.fits)
 
         self.ui.setWindowIcon(QtGui.QIcon(getUiFile('icon.svg')))
-        ports = list_serial_ports()
-
-        if len(ports) == 0:
-            USE_CAMERA = False
-        else:
-            self.ui.portChoice.addItems(ports)
 
         if USE_CAMERA:
-            self.ui.takeImage.clicked.connect(self.takeImage)
-        else:
+            ports = list_serial_ports()
+            if len(ports) == 0:
+                USE_CAMERA = False
+            else:
+                self.ui.portChoice.addItems(ports)
+                self.ui.takeImage.clicked.connect(self.takeImage)
+
+        if not USE_CAMERA:
             self.ui.allSkyControls.hide()
 
         self.ui.normalisation.addItems(self.fits.getScales().keys())
