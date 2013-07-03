@@ -1,3 +1,4 @@
+# coding: utf-8
 """
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -190,7 +191,7 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.cutLowerValue.valueChanged.connect(self.fits.setLowerCut)
 
         self.ui.actionOpen.triggered.connect(self.loadImage)
-
+        self.ui.actionAbout.triggered.connect(self.about)
         self.status = QtGui.QLabel()
         self.status.setText('No Image Loaded')
         self.ui.statusBar().addWidget(self.status)
@@ -212,6 +213,10 @@ class MainWindow(QtGui.QMainWindow):
         if filen != '':
             self.fits.loadImage(str(filen))
             self.status.setText('')
+
+    def about(self):
+        QtGui.QMessageBox.about(self.ui, 'About Fits Image Viewer', 
+            'Fits Image Viewer\nCopyright Tom Badran 2013\nhttp://github.com/badders/pyfitsview\n\nLicensed under the GPL')
 
     def takeImage(self):
         port = str(self.ui.portChoice.currentText())
