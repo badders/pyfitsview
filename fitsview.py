@@ -180,7 +180,17 @@ class FitsView(FigureCanvasQTAgg):
         """
         Zoom in on selected region
         """
+        print 'ZOOMING'
         self._mpl_toolbar.zoom()
+
+    @hasImage
+    @refresh
+    def pan(self, *args):
+        """
+        Pan around image
+        """
+        print 'PANNING'
+        self._mpl_toolbar.pan()
 
     @hasImage
     def saveToFile(self, fn, export=False):
@@ -245,6 +255,10 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.actionExport.triggered.connect(self.exportImage)
         self.ui.actionFit_to_Window.triggered.connect(self.fits.zoomFit)
         self.ui.actionZoom.triggered.connect(self.fits.zoom)
+        self.ui.actionPan.triggered.connect(self.fits.pan)
+
+        self.fits._mpl_toolbar._actions['pan'].toggled.connect(self.panUpdate)
+        self.fits._mpl_toolbar._actions['zoom'].toggled.connect(self.zoomUpdate)
 
         self.status = QtGui.QLabel()
         self.status.setText('No Image Loaded')
@@ -255,6 +269,14 @@ class MainWindow(QtGui.QMainWindow):
     def updateStatus(self, x, y, value):
         status = 'X: {:>4}\tY: {:>4}\tValue: {}'.format(x, y, value)
         self.status.setText(status)
+
+    def panUpdate(self):
+        print 'PANUPDATE'
+        self.ui.actionPan.setChecked(self.fits._mpl_toolbar._actions["pan"].isChecked())
+
+    def zoomUpdate(self):
+        print 'ZOOMUPDATE'
+        self.ui.actionZoom.setChecked(self.fits._mpl_toolbar._actions["zoom"].isChecked())
 
     def cmapChange(self, index):
         self.fits.setCMAP(get_colour_maps()[index])

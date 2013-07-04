@@ -227,6 +227,7 @@
     </property>
     <addaction name="actionFit_to_Window"/>
     <addaction name="actionZoom"/>
+    <addaction name="actionPan"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menu_View"/>
@@ -249,6 +250,7 @@
    <addaction name="separator"/>
    <addaction name="actionFit_to_Window"/>
    <addaction name="actionZoom"/>
+   <addaction name="actionPan"/>
   </widget>
   <action name="action_Quit">
    <property name="icon">
@@ -304,6 +306,9 @@
    </property>
   </action>
   <action name="actionZoom">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="icon">
     <iconset>
      <normaloff>zoom-select.png</normaloff>zoom-select.png</iconset>
@@ -331,6 +336,18 @@
    </property>
    <property name="toolTip">
     <string>Save Fits Image</string>
+   </property>
+  </action>
+  <action name="actionPan">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>transform-move.png</normaloff>transform-move.png</iconset>
+   </property>
+   <property name="text">
+    <string>Pan</string>
    </property>
   </action>
  </widget>
