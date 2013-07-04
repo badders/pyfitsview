@@ -16,9 +16,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 import sys
 import os
 import matplotlib
+import astropy.io.fits as fits
 import aplpy
 from collections import OrderedDict
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg
 from matplotlib.figure import Figure
 from PyQt4 import QtGui, QtCore, uic
 from functools import wraps
@@ -57,9 +59,26 @@ class FitsView(FigureCanvasQTAgg):
         @wraps(f)
         def _refresh(*args, **kwargs):
             ret = f(*args, **kwargs)
-            args[0]._updateDisplay()
+            fv = args[0]
+            if fv.gc is not None:
+                fv.gc.show_colorscale(pmin=fv.lowerCut, pmax=fv.upperCut,
+                                      stretch=fv._scale, aspect='auto',
+                                      cmap=fv.cmap)
+                fv.gc.axis_labels.hide()
+                fv.gc.tick_labels.hide()
+                fv.gc.ticks.hide()
+                fv.gc.frame.set_linewidth(0)
             return ret
         return _refresh
+
+    def hasImage(f):
+        @wraps(f)
+        def _hasImage(*args, **kwargs):
+            if args[0].gc is not None:
+                return f(*args, **kwargs)
+            else:
+                return None
+        return _hasImage
             
     def __init__(self):
         self._fig = Figure(dpi=96)
@@ -68,6 +87,8 @@ class FitsView(FigureCanvasQTAgg):
                                         QtGui.QSizePolicy.Expanding,
                                         QtGui.QSizePolicy.Expanding)
         self._fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+        self._mpl_toolbar = NavigationToolbar2QTAgg(self, self)
+        self._mpl_toolbar.hide()
         self.__taking = False
         self._scale = 'log'
         self.scales = OrderedDict()
@@ -80,16 +101,6 @@ class FitsView(FigureCanvasQTAgg):
         self.upperCut = 99.75
         self.lowerCut = 0.25
         self.cmap = 'gray'
-
-    def _updateDisplay(self):
-        if self.gc is not None:
-            self.gc.show_colorscale(pmin=self.lowerCut, pmax=self.upperCut,
-                                    stretch=self._scale, aspect='auto',
-                                    cmap=self.cmap)
-            self.gc.axis_labels.hide()
-            self.gc.tick_labels.hide()
-            self.gc.ticks.hide()
-            self.gc.frame.set_linewidth(0)
 
     @refresh
     def loadImage(self, filename):
@@ -146,6 +157,7 @@ class FitsView(FigureCanvasQTAgg):
         """
         return self.scales
 
+    @hasImage
     @refresh
     def setScale(self, scale):
         """
@@ -154,20 +166,48 @@ class FitsView(FigureCanvasQTAgg):
         """
         self._scale = self.scales[str(scale)]
 
+    @hasImage
+    @refresh
+    def zoomFit(self, *args):
+        """
+        Fit image to window
+        """
+        self._mpl_toolbar.home()
+
+    @hasImage
+    @refresh
+    def zoom(self, *args):
+        """
+        Zoom in on selected region
+        """
+        self._mpl_toolbar.zoom()
+
+    @hasImage
+    def saveToFile(self, fn, export=False):
+        if export:
+            self.gc.save(fn)
+        else:
+            hdu = fits.PrimaryHDU(self.gc._data, header=self.gc._header)
+            hdu.writeto(fn, clobber=True)
+
+    @hasImage
     def mouseMoveEvent(self, event):
         FigureCanvasQTAgg.mouseMoveEvent(self, event)
-        if self.gc is not None:
-            pixel_x = event.x()
-            pixel_y = event.y()
-            inv = self._fig.gca().transData.inverted()
-            x, y = inv.transform((pixel_x, pixel_y))
-            value = self.gc._data[480 - y][x]
-            self.hoverSignal.emit(x, y, value)
+        pixel_x = event.x() 
 
 class MainWindow(QtGui.QMainWindow):
     """
     Application User interface
     """
+    def hasImage(f):
+        @wraps(f)
+        def _hasImage(*args, **kwargs):
+            if args[0].fits.gc is not None:
+                return f(*args, **kwargs)
+            else:
+                return None
+        return _hasImage
+
     def __init__(self):
         global USE_CAMERA
         QtGui.QMainWindow.__init__(self)
@@ -201,6 +241,11 @@ class MainWindow(QtGui.QMainWindow):
 
         self.ui.actionOpen.triggered.connect(self.loadImage)
         self.ui.actionAbout.triggered.connect(self.about)
+        self.ui.actionSave.triggered.connect(self.saveImage)
+        self.ui.actionExport.triggered.connect(self.exportImage)
+        self.ui.actionFit_to_Window.triggered.connect(self.fits.zoomFit)
+        self.ui.actionZoom.triggered.connect(self.fits.zoom)
+
         self.status = QtGui.QLabel()
         self.status.setText('No Image Loaded')
         self.ui.statusBar().addWidget(self.status)
@@ -223,9 +268,35 @@ class MainWindow(QtGui.QMainWindow):
             self.fits.loadImage(str(filen))
             self.status.setText('')
 
+    @hasImage
+    def saveImage(self):
+        filen = QtGui.QFileDialog.getSaveFileName(caption='Save Fits File')
+        if filen != '':
+            self.fits.saveImage(str(filen))
+            self.status.showMessage('Saved to {}'.format(str(filen)))
+
+    @hasImage
+    def exportImage(self):
+        filen = QtGui.QFileDialog.getSaveFileName(caption='Export to File')
+        if filen != '':
+            self.fits.saveImage(str(filen), export=True)
+            self.status.showMessage('Exported to {}'.format(str(filen)))
+
     def about(self):
-        QtGui.QMessageBox.about(self.ui, 'About Fits Image Viewer', 
-            'Fits Image Viewer\nCopyright Tom Badran 2013\nhttp://github.com/badders/pyfitsview\n\nLicensed under the GPL')
+        msg = """Fits Image Viewer
+
+        Copyright Tom Badran 2013
+        http://github.com/badders/pyfitsview
+
+        Licensed under the GPL
+
+        Special thanks to:
+        * Aplpy
+        * Astropy
+        * PyQt4
+        * Matplotlib
+        """
+        QtGui.QMessageBox.about(self.ui, 'About Fits Image Viewer', msg)
 
     def takeImage(self):
         port = str(self.ui.portChoice.currentText())
