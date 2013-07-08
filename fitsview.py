@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 """
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -32,8 +32,23 @@ try:
 except ImportError:
     USE_CAMERA = False
 
+ABOUT_TEXT = """Fits Image Viewer
+Copyright Tom Badran 2013
+http://github.com/badders/pyfitsview
+
+Licensed under the GPL
+
+Special thanks to:
+* APLpy - http://aplpy.github.io/
+* astropy - https://astropy.readthedocs.org/en/stable/
+* PyQt4 - http://www.riverbankcomputing.com/software/pyqt/
+* Matplotlib - http://www.matplotlib.org/
+"""
+
+
 def getUiFile(name):
-  return os.path.join(os.path.dirname(os.path.realpath( __file__ )), 'ui', name)
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ui', name)
+
 
 def list_serial_ports():
     ports = []
@@ -43,10 +58,12 @@ def list_serial_ports():
             ports.append(port)
     return ports
 
+
 def get_colour_maps():
     maps = matplotlib.cm.datad.keys()
     maps.sort(key=str.lower)
     return maps
+
 
 class FitsView(FigureCanvasQTAgg):
     """
@@ -79,7 +96,7 @@ class FitsView(FigureCanvasQTAgg):
             else:
                 return None
         return _hasImage
-            
+
     def __init__(self):
         self._fig = Figure(dpi=96)
         FigureCanvasQTAgg.__init__(self, self._fig)
@@ -93,7 +110,7 @@ class FitsView(FigureCanvasQTAgg):
         self._scale = 'log'
         self.scales = OrderedDict()
         self.scales['Logarithmic'] = 'log'
-        self.scales['Linear'] =  'linear'
+        self.scales['Linear'] = 'linear'
         self.scales['Square Root'] = 'sqrt'
         self.scales['Power'] = 'power'
         self.scales['Arc Sinh'] = 'arcsinh'
@@ -108,6 +125,7 @@ class FitsView(FigureCanvasQTAgg):
         Load a fits image from disk
         filename -- full path to the image file
         """
+        self._fig.clear()
         self.gc = aplpy.FITSFigure(filename, figure=self._fig)
 
     @refresh
@@ -120,6 +138,7 @@ class FitsView(FigureCanvasQTAgg):
         """
         if self.__taking:
             return
+        self._fig.clear()
         self._taking = True
         cam = AllSkyCamera(dev)
         image = cam.get_image(exposure=exposure, progress_callback=progress)
@@ -180,7 +199,6 @@ class FitsView(FigureCanvasQTAgg):
         """
         Zoom in on selected region
         """
-        print 'ZOOMING'
         self._mpl_toolbar.zoom()
 
     @hasImage
@@ -189,7 +207,6 @@ class FitsView(FigureCanvasQTAgg):
         """
         Pan around image
         """
-        print 'PANNING'
         self._mpl_toolbar.pan()
 
     @hasImage
@@ -203,9 +220,21 @@ class FitsView(FigureCanvasQTAgg):
     @hasImage
     def mouseMoveEvent(self, event):
         FigureCanvasQTAgg.mouseMoveEvent(self, event)
-        pixel_x = event.x() 
+        pixel_x = event.x()
+        pixel_y = event.y()
+        inverted = self._fig.gca().transData.inverted()
+        x, y = inverted.transform((pixel_x, pixel_y))
+        try:
+            if x < 0 or y < 0:
+                value = None
+            else:
+                value = self.gc._data[480 - y][x]
+        except IndexError:
+            value = None
+        self.hoverSignal.emit(x, y, value)
 
-class MainWindow(QtGui.QMainWindow):
+
+class MainWindow(QtGui.QApplication):
     """
     Application User interface
     """
@@ -218,9 +247,9 @@ class MainWindow(QtGui.QMainWindow):
                 return None
         return _hasImage
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         global USE_CAMERA
-        QtGui.QMainWindow.__init__(self)
+        QtGui.QApplication.__init__(self, *args, **kwargs)
         self.ui = uic.loadUi(getUiFile('viewer.ui'))
         self.fits = FitsView()
         self.fits.hoverSignal.connect(self.updateStatus)
@@ -271,11 +300,9 @@ class MainWindow(QtGui.QMainWindow):
         self.status.setText(status)
 
     def panUpdate(self):
-        print 'PANUPDATE'
         self.ui.actionPan.setChecked(self.fits._mpl_toolbar._actions["pan"].isChecked())
 
     def zoomUpdate(self):
-        print 'ZOOMUPDATE'
         self.ui.actionZoom.setChecked(self.fits._mpl_toolbar._actions["zoom"].isChecked())
 
     def cmapChange(self, index):
@@ -305,20 +332,7 @@ class MainWindow(QtGui.QMainWindow):
             self.status.showMessage('Exported to {}'.format(str(filen)))
 
     def about(self):
-        msg = """Fits Image Viewer
-
-        Copyright Tom Badran 2013
-        http://github.com/badders/pyfitsview
-
-        Licensed under the GPL
-
-        Special thanks to:
-        * Aplpy
-        * Astropy
-        * PyQt4
-        * Matplotlib
-        """
-        QtGui.QMessageBox.about(self.ui, 'About Fits Image Viewer', msg)
+        QtGui.QMessageBox.about(self.ui, 'About Fits Image Viewer', ABOUT_TEXT)
 
     def takeImage(self):
         port = str(self.ui.portChoice.currentText())
@@ -338,11 +352,10 @@ class MainWindow(QtGui.QMainWindow):
         self.progress.setValue(percent)
         QtGui.QApplication.processEvents()
 
+
 def main():
-    app = QtGui.QApplication(sys.argv)
-    window = MainWindow()
+    app = MainWindow(sys.argv)
     app.exec_()
 
 if __name__ == '__main__':
     main()
-
