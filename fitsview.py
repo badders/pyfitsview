@@ -38,7 +38,7 @@ http://github.com/badders/pyfitsview
 
 Licensed under the GPL
 
-Special thanks to:
+Makes use of the following projects:
 * APLpy - http://aplpy.github.io/
 * astropy - https://astropy.readthedocs.org/en/stable/
 * PyQt4 - http://www.riverbankcomputing.com/software/pyqt/
@@ -47,10 +47,17 @@ Special thanks to:
 
 
 def getUiFile(name):
+    """
+    Helper function to automatically correct path for files in ui/
+    """
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ui', name)
 
 
 def list_serial_ports():
+    """
+    Helper function to get a list of serial ports.
+    Currently strips out bluetooth ports
+    """
     ports = []
     for x in list_ports.comports():
         port = x[0]
@@ -60,6 +67,9 @@ def list_serial_ports():
 
 
 def get_colour_maps():
+    """
+    Get the list of available colour maps from the matplotlib library
+    """
     maps = matplotlib.cm.datad.keys()
     maps.sort(key=str.lower)
     return maps
