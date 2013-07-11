@@ -67,7 +67,7 @@ def get_colour_maps():
 
 class FitsView(FigureCanvasQTAgg):
     """
-    A FITS imageviewer base on matplotlib, rendering is done using the astropy
+    A FITS image viewer base on matplotlib, rendering is done using the astropy
     library.
     """
     hoverSignal = QtCore.pyqtSignal(int, int, int)
@@ -355,6 +355,9 @@ class MainWindow(QtGui.QApplication):
 
 def main():
     app = MainWindow(sys.argv)
+    args = app.arguments()
+    if len(args) > 1:
+        app.fits.loadImage(str(args[-1]))
     app.exec_()
 
 if __name__ == '__main__':
