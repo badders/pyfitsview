@@ -17,6 +17,8 @@ import sys
 import os
 import matplotlib
 import astropy.io.fits as fits
+from astropy import coordinates
+from astropy import units
 import aplpy
 from collections import OrderedDict
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
@@ -80,28 +82,23 @@ class FitsView(FigureCanvasQTAgg):
     A FITS image viewer base on matplotlib, rendering is done using the astropy
     library.
     """
-    hoverSignal = QtCore.pyqtSignal(int, int, int)
+    hoverSignal = QtCore.pyqtSignal(int, int, int, float, float)
 
     def refresh(f):
         @wraps(f)
         def _refresh(*args, **kwargs):
             ret = f(*args, **kwargs)
             fv = args[0]
-            if fv.gc is not None:
-                fv.gc.show_colorscale(pmin=fv.lowerCut, pmax=fv.upperCut,
-                                      stretch=fv._scale, aspect='auto',
-                                      cmap=fv.cmap)
-                fv.gc.axis_labels.hide()
-                fv.gc.tick_labels.hide()
-                fv.gc.ticks.hide()
-                fv.gc.frame.set_linewidth(0)
+            if not fv._timer:
+                QtCore.QTimer.singleShot(100, fv._refreshConcrete)
+                fv._timer = True
             return ret
         return _refresh
 
     def hasImage(f):
         @wraps(f)
         def _hasImage(*args, **kwargs):
-            if args[0].gc is not None:
+            if args[0]._gc is not None:
                 return f(*args, **kwargs)
             else:
                 return None
@@ -118,16 +115,28 @@ class FitsView(FigureCanvasQTAgg):
         self._mpl_toolbar.hide()
         self.__taking = False
         self._scale = 'log'
-        self.scales = OrderedDict()
-        self.scales['Logarithmic'] = 'log'
-        self.scales['Linear'] = 'linear'
-        self.scales['Square Root'] = 'sqrt'
-        self.scales['Power'] = 'power'
-        self.scales['Arc Sinh'] = 'arcsinh'
-        self.gc = None
-        self.upperCut = 99.75
-        self.lowerCut = 0.25
-        self.cmap = 'gray'
+        self._scales = OrderedDict()
+        self._scales['Logarithmic'] = 'log'
+        self._scales['Linear'] = 'linear'
+        self._scales['Square Root'] = 'sqrt'
+        self._scales['Power'] = 'power'
+        self._scales['Arc Sinh'] = 'arcsinh'
+        self._gc = None
+        self._upperCut = 99.75
+        self._lowerCut = 0.25
+        self._cmap = 'gray'
+        self._timer = False
+
+    @hasImage
+    def _refreshConcrete(self):
+        self._gc.show_colorscale(pmin=self._lowerCut, pmax=self._upperCut,
+                                 stretch=self._scale, aspect='auto',
+                                 cmap=self._cmap)
+        self._gc.axis_labels.hide()
+        self._gc.tick_labels.hide()
+        self._gc.ticks.hide()
+        self._gc.frame.set_linewidth(0)
+        self._timer = False
 
     @refresh
     def loadImage(self, filename):
@@ -136,7 +145,7 @@ class FitsView(FigureCanvasQTAgg):
         filename -- full path to the image file
         """
         self._fig.clear()
-        self.gc = aplpy.FITSFigure(filename, figure=self._fig)
+        self._gc = aplpy.FITSFigure(filename, figure=self._fig)
 
     @refresh
     def takeImage(self, exposure, progress, dev='/dev/tty.usberial'):
@@ -153,7 +162,7 @@ class FitsView(FigureCanvasQTAgg):
         cam = AllSkyCamera(dev)
         image = cam.get_image(exposure=exposure, progress_callback=progress)
         self._max = image.data.max()
-        self.gc = aplpy.FITSFigure(image, figure=self._fig)
+        self._gc = aplpy.FITSFigure(image, figure=self._fig)
         self._taking = False
 
     @refresh
@@ -162,7 +171,7 @@ class FitsView(FigureCanvasQTAgg):
         Set the colourmap for the image display
         cmap -- colourmap name (see matplotlib.cm)
         """
-        self.cmap = cmap
+        self._cmap = cmap
 
     @refresh
     def setUpperCut(self, value):
@@ -170,7 +179,7 @@ class FitsView(FigureCanvasQTAgg):
         Set the upper limit for display cut
         value -- percentage for upper limit
         """
-        self.upperCut = value
+        self._upperCut = value
 
     @refresh
     def setLowerCut(self, value):
@@ -178,13 +187,13 @@ class FitsView(FigureCanvasQTAgg):
         Set the lower limit for display cut
         value -- percentage for the lower limit
         """
-        self.lowerCut = value
+        self._lowerCut = value
 
     def getScales(self):
         """
         return the available normalisation scales
         """
-        return self.scales
+        return self._scales
 
     @hasImage
     @refresh
@@ -193,7 +202,7 @@ class FitsView(FigureCanvasQTAgg):
         Set normalisation scale
         scale -- desired scale
         """
-        self._scale = self.scales[str(scale)]
+        self._scale = self._scales[str(scale)]
 
     @hasImage
     @refresh
@@ -222,9 +231,9 @@ class FitsView(FigureCanvasQTAgg):
     @hasImage
     def saveToFile(self, fn, export=False):
         if export:
-            self.gc.save(fn)
+            self._gc.save(fn)
         else:
-            hdu = fits.PrimaryHDU(self.gc._data, header=self.gc._header)
+            hdu = fits.PrimaryHDU(self._gc._data, header=self._gc._header)
             hdu.writeto(fn, clobber=True)
 
     @hasImage
@@ -232,16 +241,17 @@ class FitsView(FigureCanvasQTAgg):
         FigureCanvasQTAgg.mouseMoveEvent(self, event)
         pixel_x = event.x()
         pixel_y = event.y()
+        ra, dec = self._gc.pixel2world(pixel_x, pixel_y)
         inverted = self._fig.gca().transData.inverted()
         x, y = inverted.transform((pixel_x, pixel_y))
         try:
             if x < 0 or y < 0:
                 value = None
             else:
-                value = self.gc._data[480 - y][x]
+                value = self._gc._data[480 - y][x]
         except IndexError:
             value = None
-        self.hoverSignal.emit(x, y, value)
+        self.hoverSignal.emit(x, y, value, ra, dec)
 
 
 class MainWindow(QtGui.QApplication):
@@ -305,8 +315,12 @@ class MainWindow(QtGui.QApplication):
 
         self.ui.show()
 
-    def updateStatus(self, x, y, value):
-        status = 'X: {:>4}\tY: {:>4}\tValue: {}'.format(x, y, value)
+    def updateStatus(self, x, y, value, ra_d, dec_d):
+        coord = coordinates.ICRSCoordinates(ra=ra_d, dec=dec_d, unit=(units.degree, units.degree))
+        ra_str = coord.ra.format(units.hour)
+        dec_str = coord.dec.format(units.degree, alwayssign=True)
+        co_str = "RA: {} Dec: {}".format(ra_str, dec_str)
+        status = '{}\t\tX: {:>4}\tY: {:>4}\tValue: {}'.format(co_str, x, y, value)
         self.status.setText(status)
 
     def panUpdate(self):
