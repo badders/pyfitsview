@@ -254,6 +254,13 @@ class FitsView(FigureCanvasQTAgg):
         self.hoverSignal.emit(x, y, value, ra, dec)
 
 
+class FileItem(QtGui.QStandardItem):
+    def __init__(self, fn):
+        dn = os.path.basename(str(fn))[:-5]
+        super(FileItem, self).__init__(dn)
+        self.fn = fn
+
+
 class MainWindow(QtGui.QApplication):
     """
     Application User interface
@@ -298,7 +305,7 @@ class MainWindow(QtGui.QApplication):
         self.ui.cutUpperValue.valueChanged.connect(self.fits.setUpperCut)
         self.ui.cutLowerValue.valueChanged.connect(self.fits.setLowerCut)
 
-        self.ui.actionOpen.triggered.connect(self.loadImage)
+        self.ui.actionOpen.triggered.connect(self.addFiles)
         self.ui.actionAbout.triggered.connect(self.about)
         self.ui.actionSave.triggered.connect(self.saveImage)
         self.ui.actionExport.triggered.connect(self.exportImage)
@@ -313,6 +320,9 @@ class MainWindow(QtGui.QApplication):
         self.status.setText('No Image Loaded')
         self.ui.statusBar().addWidget(self.status)
 
+        self.model = QtGui.QStandardItemModel()
+        self.ui.fileList.setModel(self.model)
+        self.ui.fileList.selectionModel().selectionChanged.connect(self.setSelection)
         self.ui.show()
 
     def updateStatus(self, x, y, value, ra_d, dec_d):
@@ -335,11 +345,18 @@ class MainWindow(QtGui.QApplication):
     def scaleChange(self, index):
         self.fits.setScale(self.ui.normalisation.itemText(index))
 
-    def loadImage(self):
-        filen = QtGui.QFileDialog.getOpenFileName(caption='Load Fits File', filter='*.fits')
-        if filen != '':
-            self.fits.loadImage(str(filen))
-            self.status.setText('')
+    def addFiles(self):
+        files = QtGui.QFileDialog.getOpenFileNames(caption='Load Fits File', filter='*.fits')
+        for fn in files:
+            self.model.appendRow(FileItem(fn))
+
+    def setSelection(self, selection):
+        self.setFile(selection[0].indexes()[0])
+
+    def setFile(self, index):
+        item = self.model.itemFromIndex(index)
+        self.fits.loadImage(str(item.fn))
+        self.status.setText('')
 
     @hasImage
     def saveImage(self):
