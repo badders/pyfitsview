@@ -31,7 +31,8 @@ PLIST = {
 }
 
 OPTIONS = {
-    'argv_emulation': True, 'includes': ['sip', 'PyQt4._qt'],
+    'argv_emulation': True,
+    'includes': ['sip', 'PyQt4._qt'],
     'excludes': ['PyQt4.QtDesigner'],
     'iconfile': 'ui/icon.icns',
     'plist': PLIST

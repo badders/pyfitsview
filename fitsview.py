@@ -55,6 +55,13 @@ def getUiFile(name):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ui', name)
 
 
+def getConfigFile():
+    """
+    Return path to the configuration files
+    """
+    return os.path.join(os.environ['HOME'], '.fitsview')
+
+
 def list_serial_ports():
     """
     Helper function to get a list of serial ports.
@@ -312,6 +319,8 @@ class MainWindow(QtGui.QApplication):
         self.ui.actionFit_to_Window.triggered.connect(self.fits.zoomFit)
         self.ui.actionZoom.triggered.connect(self.fits.zoom)
         self.ui.actionPan.triggered.connect(self.fits.pan)
+        self.ui.actionNext.triggered.connect(self.next)
+        self.ui.actionPrevious.triggered.connect(self.previous)
 
         self.fits._mpl_toolbar._actions['pan'].toggled.connect(self.panUpdate)
         self.fits._mpl_toolbar._actions['zoom'].toggled.connect(self.zoomUpdate)
@@ -345,13 +354,28 @@ class MainWindow(QtGui.QApplication):
     def scaleChange(self, index):
         self.fits.setScale(self.ui.normalisation.itemText(index))
 
-    def addFiles(self):
-        files = QtGui.QFileDialog.getOpenFileNames(caption='Load Fits File', filter='*.fits')
+    def addFiles(self, *args, **kwargs):
+        if not 'files' in kwargs:
+            files = QtGui.QFileDialog.getOpenFileNames(caption='Load Fits File', filter='*.fits')
+        else:
+            files = kwargs['files']
         for fn in files:
             self.model.appendRow(FileItem(fn))
+        if self.ui.fileList.currentIndex().row() < 0:
+            self.ui.fileList.setCurrentIndex(self.model.index(0, 0))
 
     def setSelection(self, selection):
         self.setFile(selection[0].indexes()[0])
+
+    def next(self):
+        current = self.ui.fileList.currentIndex().row()
+        if current < self.model.rowCount() - 1:
+            self.ui.fileList.setCurrentIndex(self.model.index(current + 1, 0))
+
+    def previous(self):
+        current = self.ui.fileList.currentIndex().row()
+        if current > 0:
+            self.ui.fileList.setCurrentIndex(self.model.index(current - 1, 0))
 
     def setFile(self, index):
         item = self.model.itemFromIndex(index)
@@ -393,12 +417,15 @@ class MainWindow(QtGui.QApplication):
         self.progress.setValue(percent)
         QtGui.QApplication.processEvents()
 
+    def quit(self):
+        sys.exit()
+
 
 def main():
     app = MainWindow(sys.argv)
     args = app.arguments()
     if len(args) > 1:
-        app.fits.loadImage(str(args[-1]))
+        app.addFiles(files=args[1:])
     app.exec_()
 
 if __name__ == '__main__':
