@@ -1,41 +1,30 @@
 from setuptools import setup
 
 APP = ['fitsview.py']
-DATA_FILES = []
-
-FITS_UTI = {
-    'UTTypeIdentifier': 'public.fits',
-    'UTTypeReferenceURL': 'http://fits.gsfc.nasa.gov/',
-    'UTTypeDescription': 'FITS Image',
-    'UTTypeConformsTo': ['public.image', 'public.data'],
-    'UTTypeTagSpecification': {
-        'com.apple.ostype': 'FITS',
-        'public.filename-extension': 'fits',
-        'public.mime-type': 'image/fits'
-    }
-}
-
-PLIST = {
-    'NSHumanReadableCopyright': '(c) Tom Badran 2013',
-    'CFBundleName': 'Fits Viewer',
-    'CFBundlePackageType': 'APPL',
-    'CFBundleExecutable': 'Fits Viewer',
-    'CFBundleDisplayName': 'Fits Viewer',
-    'UTExportedTypeDeclarations': [FITS_UTI],
-    'CFBundleShortVersionString': '0.1.0',
-    'CFBundleDocumentTypes': {
-        'CFBundleTypeName': 'FITS Image',
-        'CFBundleTypeRole': 'Viewer',
-        'LSItemContentTypes': ['public.FITS']
-    }
-}
+DATA_FILES = ['ui']
 
 OPTIONS = {
     'argv_emulation': True,
-    'includes': ['sip', 'PyQt4._qt'],
-    'excludes': ['PyQt4.QtDesigner'],
+    'packages': ['astropy', 'matplotlib', 'scipy', 'numpy'],
+    'includes': ['PyQt4', 'PyQt4.QtCore', 'PyQt4.QtGui', 'sip'],
+    'excludes': ['PyQt4.QtDesigner', 'PyQt4.QtNetwork', 'PyQt4.QtNetwork', 'PyQt4.QtOpenGL'
+                 'PyQt4.QtScript', 'PyQt4.QtSql', 'PyQt4.QtWebKit', 'PyQt4.QtXml',
+                 'PyQt4.phonon', 'Tkinter', 'PyQt4.uic.port_v3'],
     'iconfile': 'ui/icon.icns',
-    'plist': PLIST
+    'plist': dict(
+        NSHumanReadableCopyright='(c) Tom Badran 2013',
+        CFBundleName='Fits Viewer',
+        CFBundlePackageType='APPL',
+        CFBundleExecutable='Fits Viewer',
+        CFBundleDisplayName='Fits Viewer',
+        CFBundleShortVersionString='0.1.0',
+        CFBundleDocumentTypes=[
+                dict(
+                    CFBundleTypeName='Flexible Image Transport System',
+                    CFBundleTypeExtensions=['fits', 'fit', 'fts'],
+                ),
+        ]
+    )
 }
 
 setup(
