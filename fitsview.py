@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 import sys
 import os
 import matplotlib
+matplotlib.use('QT4Agg')
 import astropy.io.fits as fits
 from astropy import coordinates
 from astropy import units
