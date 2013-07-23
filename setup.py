@@ -7,7 +7,7 @@ OPTIONS = {
     'argv_emulation': True,
     'packages': ['astropy', 'matplotlib', 'scipy', 'numpy'],
     'includes': ['PyQt4', 'PyQt4.QtCore', 'PyQt4.QtGui', 'sip'],
-    'excludes': ['PyQt4.QtDesigner', 'PyQt4.QtNetwork', 'PyQt4.QtOpenGL',
+    'excludes': ['PyQt4.QtDesigner', 'PyQt4.QtNetwork', 'PyQt4.QtOpenGL', 'sympy',
                  'PyQt4.QtScript', 'PyQt4.QtSql', 'PyQt4.QtWebKit', 'PyQt4.QtXml',
                  'PyQt4.phonon', 'Tkinter', 'PyQt4.uic.port_v3', 'matplotlib.tests'],
     'iconfile': 'ui/icon.icns',
