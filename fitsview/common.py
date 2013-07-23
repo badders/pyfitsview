@@ -25,6 +25,7 @@ import matplotlib
 from PyQt4 import QtGui
 import __main__
 
+
 def get_ui_file(name):
     """
     Helper function to automatically correct path for files in ui/
@@ -62,6 +63,9 @@ def get_colour_maps():
 
 
 def use_camera():
+    """
+    Returns true if the libraries required to use the AllSky camera are available
+    """
     return _USE_CAMERA
 
 
