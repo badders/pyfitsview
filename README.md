@@ -1,5 +1,7 @@
-pyfitsview
-==========
+Fits Viewer
+===========
+
+![Screenshot](https://raw.github.com/badders/pyfitsview/gh-pages/images/screeshot1.png "Screenshot")
 
 A basic image viewer for FITS images based on aplpy and Qt4. Optionally supports directly downloading images from the SBIG AllSky Camera using [pyallsky](https://github.com/badders/pyallsky)
 
