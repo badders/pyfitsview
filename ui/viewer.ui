@@ -313,7 +313,7 @@
     <addaction name="separator"/>
     <addaction name="actionExport"/>
     <addaction name="separator"/>
-    <addaction name="action_Quit"/>
+    <addaction name="actionQuit"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -370,7 +370,7 @@
    <addaction name="actionPrevious"/>
    <addaction name="actionNext"/>
   </widget>
-  <action name="action_Quit">
+  <action name="actionQuit">
    <property name="icon">
     <iconset>
      <normaloff>application-exit.png</normaloff>application-exit.png</iconset>

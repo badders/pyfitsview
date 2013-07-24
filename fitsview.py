@@ -22,7 +22,7 @@ def main():
     args = app.arguments()
     if len(args) > 1:
         app.addFiles(files=args[1:])
-    app.exec_()
+    sys.exit(app.exec_())
 
 if __name__ == '__main__':
     main()

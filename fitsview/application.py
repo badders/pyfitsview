@@ -13,28 +13,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
-import matplotlib
-matplotlib.use('QT4Agg')
 from astropy import coordinates
 from astropy import units
 from PyQt4 import QtGui, QtCore, uic
 from functools import wraps
 from fitsview import FitsView
 from common import *
-
-
-ABOUT_TEXT = """Fits Image Viewer
-Copyright Tom Badran 2013
-http://github.com/badders/pyfitsview
-
-Licensed under the GPL
-
-Makes use of the following projects:
-* APLpy - http://aplpy.github.io/
-* astropy - https://astropy.readthedocs.org/en/stable/
-* PyQt4 - http://www.riverbankcomputing.com/software/pyqt/
-* Matplotlib - http://www.matplotlib.org/
-"""
 
 
 class FitsViewer(QtGui.QApplication):
@@ -54,6 +38,7 @@ class FitsViewer(QtGui.QApplication):
         global USE_CAMERA
         QtGui.QApplication.__init__(self, *args, **kwargs)
         self.ui = uic.loadUi(get_ui_file('viewer.ui'))
+        self.about_ui = uic.loadUi(get_ui_file('about.ui'))
         self.fits = FitsView()
         self.fits.hoverSignal.connect(self.updateStatus)
         self.ui.fitsLayout.addWidget(self.fits)
@@ -87,6 +72,8 @@ class FitsViewer(QtGui.QApplication):
         self.ui.actionPan.triggered.connect(self.fits.pan)
         self.ui.actionNext.triggered.connect(self.next)
         self.ui.actionPrevious.triggered.connect(self.previous)
+        self.ui.actionQuit.triggered.connect(self.quit)
+        self.aboutToQuit.connect(self.saveConfig)
 
         self.fits._mpl_toolbar._actions['pan'].toggled.connect(self.panUpdate)
         self.fits._mpl_toolbar._actions['zoom'].toggled.connect(self.zoomUpdate)
@@ -99,8 +86,8 @@ class FitsViewer(QtGui.QApplication):
         self.ui.fileList.setModel(self.model)
         self.ui.fileList.selectionModel().selectionChanged.connect(self.setSelection)
 
-        self.loadConfig()
         self.ui.show()
+        self.loadConfig()
 
     def updateStatus(self, x, y, value, ra_d, dec_d):
         coord = coordinates.ICRSCoordinates(ra=ra_d, dec=dec_d, unit=(units.degree, units.degree))
@@ -157,10 +144,31 @@ class FitsViewer(QtGui.QApplication):
         return QtCore.QSettings('Fits Viewer', 'pyfitsview')
 
     def loadConfig(self):
-        pass
+        settings = self._getSettings()
+        settings.beginGroup('Window')
+        self.ui.restoreGeometry(settings.value('geometry', self.ui.saveGeometry()).toPyObject())
+        settings.endGroup()
+        settings.beginGroup('Display')
+        self.ui.cutLowerValue.setValue(settings.value('lcut', self.ui.cutLowerValue.value()).toPyObject())
+        self.ui.cutUpperValue.setValue(settings.value('ucut', self.ui.cutUpperValue.value()).toPyObject())
+        self.ui.colourMap.setCurrentIndex(settings.value('cmap', self.ui.colourMap.currentIndex()).toPyObject())
+        self.ui.normalisation.setCurrentIndex(settings.value('scale', self.ui.normalisation.currentIndex()).toPyObject())
+        settings.endGroup()
+        self.addFiles(files=settings.value('Files/List').toPyObject())
 
     def saveConfig(self):
-        pass
+        settings = self._getSettings()
+        settings.beginGroup('Window')
+        settings.setValue('geometry', self.ui.saveGeometry())
+        settings.endGroup()
+        settings.beginGroup('Display')
+        settings.setValue('lcut', self.ui.cutLowerValue.value())
+        settings.setValue('ucut', self.ui.cutUpperValue.value())
+        settings.setValue('cmap', self.ui.colourMap.currentIndex())
+        settings.setValue('scale', self.ui.normalisation.currentIndex())
+        settings.endGroup()
+        files = [str(self.model.item(i).fn) for i in range(self.model.rowCount())]
+        settings.setValue('Files/List', files)
 
     @hasImage
     def saveImage(self):
@@ -177,7 +185,7 @@ class FitsViewer(QtGui.QApplication):
             self.status.showMessage('Exported to {}'.format(str(filen)))
 
     def about(self):
-        QtGui.QMessageBox.about(self.ui, 'About Fits Image Viewer', ABOUT_TEXT)
+        self.about_ui.show()
 
     def takeImage(self):
         port = str(self.ui.portChoice.currentText())
@@ -196,6 +204,3 @@ class FitsViewer(QtGui.QApplication):
     def _takeImageProgress(self, percent):
         self.progress.setValue(percent)
         QtGui.QApplication.processEvents()
-
-    def quit(self):
-        sys.exit()

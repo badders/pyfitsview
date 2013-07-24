@@ -74,16 +74,16 @@ class FitsView(FigureCanvasQTAgg):
         self._cmap = 'gray'
         self._timer = False
 
-    @hasImage
     def _refreshConcrete(self):
-        self._gc.show_colorscale(pmin=self._lowerCut, pmax=self._upperCut,
-                                 stretch=self._scale, aspect='auto',
-                                 cmap=self._cmap)
-        self._gc.axis_labels.hide()
-        self._gc.tick_labels.hide()
-        self._gc.ticks.hide()
-        self._gc.frame.set_linewidth(0)
         self._timer = False
+        if self._gc:
+            self._gc.show_colorscale(pmin=self._lowerCut, pmax=self._upperCut,
+                                     stretch=self._scale, aspect='auto',
+                                     cmap=self._cmap)
+            self._gc.axis_labels.hide()
+            self._gc.tick_labels.hide()
+            self._gc.ticks.hide()
+            self._gc.frame.set_linewidth(0)
 
     @refresh
     def loadImage(self, filename):
@@ -144,7 +144,6 @@ class FitsView(FigureCanvasQTAgg):
         """
         return self._scales
 
-    @hasImage
     @refresh
     def setScale(self, scale):
         """
