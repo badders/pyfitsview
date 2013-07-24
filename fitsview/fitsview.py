@@ -19,6 +19,7 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg
 from matplotlib.figure import Figure
 import astropy.io.fits as fits
 import aplpy
+import dateutil
 from PyQt4 import QtGui, QtCore
 from functools import wraps
 from common import *
@@ -113,6 +114,12 @@ class FitsView(FigureCanvasQTAgg):
             self._max = image.data.max()
             self._gc = aplpy.FITSFigure(image, figure=self._fig)
             self._taking = False
+
+    def getImageDateObserved(self):
+        return dateutil.parser.parse(self._gc._header['DATE-OBS'])
+
+    def getImageExposure(self):
+        return self._gc._header['EXPOSURE']
 
     @refresh
     def setCMAP(self, cmap):

@@ -41,7 +41,7 @@ class FitsViewer(QtGui.QApplication):
         self.about_ui = uic.loadUi(get_ui_file('about.ui'))
         self.fits = FitsView()
         self.fits.hoverSignal.connect(self.updateStatus)
-        self.ui.fitsLayout.addWidget(self.fits)
+        self.ui.setCentralWidget(self.fits)
 
         self.ui.setWindowIcon(QtGui.QIcon(get_ui_file('icon.svg')))
 
@@ -73,6 +73,11 @@ class FitsViewer(QtGui.QApplication):
         self.ui.actionNext.triggered.connect(self.next)
         self.ui.actionPrevious.triggered.connect(self.previous)
         self.ui.actionQuit.triggered.connect(self.quit)
+
+        self.ui.menuDisplay.addAction(self.ui.displayDock.toggleViewAction())
+        self.ui.menuDisplay.addAction(self.ui.toolsDock.toggleViewAction())
+        self.ui.menuDisplay.addAction(self.ui.fileDock.toggleViewAction())
+
         self.aboutToQuit.connect(self.saveConfig)
 
         self.fits._mpl_toolbar._actions['pan'].toggled.connect(self.panUpdate)
@@ -86,13 +91,19 @@ class FitsViewer(QtGui.QApplication):
         self.ui.fileList.setModel(self.model)
         self.ui.fileList.selectionModel().selectionChanged.connect(self.setSelection)
 
+        self.ui.tabifyDockWidget(self.ui.toolsDock, self.ui.displayDock)
+
         self.ui.show()
         self.loadConfig()
 
     def updateStatus(self, x, y, value, ra_d, dec_d):
-        coord = coordinates.ICRSCoordinates(ra=ra_d, dec=dec_d, unit=(units.degree, units.degree))
-        ra_str = coord.ra.format(units.hour)
-        dec_str = coord.dec.format(units.degree, alwayssign=True)
+        try:
+            coord = coordinates.ICRSCoordinates(ra=ra_d, dec=dec_d, unit=(units.degree, units.degree))
+            ra_str = coord.ra.format(units.hour)
+            dec_str = coord.dec.format(units.degree, alwayssign=True)
+        except coordinates.errors.BoundsError:
+            ra_str = ''
+            dec_str = ''
         co_str = "RA: {} Dec: {}".format(ra_str, dec_str)
         status = '{}\t\tX: {:>4}\tY: {:>4}\tValue: {}'.format(co_str, x, y, value)
         self.status.setText(status)
@@ -136,6 +147,10 @@ class FitsViewer(QtGui.QApplication):
         item = self.model.itemFromIndex(index)
         self.fits.loadImage(str(item.fn))
         self.status.setText('')
+        self.ui.infoExposureLabel.setText('{}s'.format(self.fits.getImageExposure()))
+        dt = self.fits.getImageDateObserved()
+        self.ui.infoDateLabel.setText(str(dt.date()))
+        self.ui.infoTimeLabel.setText(str(dt.time()))
 
     def _getSettings(self):
         """
@@ -154,7 +169,6 @@ class FitsViewer(QtGui.QApplication):
         self.ui.colourMap.setCurrentIndex(settings.value('cmap', self.ui.colourMap.currentIndex()).toPyObject())
         self.ui.normalisation.setCurrentIndex(settings.value('scale', self.ui.normalisation.currentIndex()).toPyObject())
         settings.endGroup()
-        self.addFiles(files=settings.value('Files/List').toPyObject())
 
     def saveConfig(self):
         settings = self._getSettings()
@@ -167,8 +181,6 @@ class FitsViewer(QtGui.QApplication):
         settings.setValue('cmap', self.ui.colourMap.currentIndex())
         settings.setValue('scale', self.ui.normalisation.currentIndex())
         settings.endGroup()
-        files = [str(self.model.item(i).fn) for i in range(self.model.rowCount())]
-        settings.setValue('Files/List', files)
 
     @hasImage
     def saveImage(self):
