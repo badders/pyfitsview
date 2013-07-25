@@ -19,6 +19,7 @@ from PyQt4 import QtGui, QtCore, uic
 from functools import wraps
 from fitsview import FitsView
 import simplejson as json
+import os
 from common import *
 
 
@@ -26,6 +27,8 @@ class FitsViewer(QtGui.QApplication):
     """
     Application User interface
     """
+    MaxRecentFiles = 5
+
     def hasImage(f):
         @wraps(f)
         def _hasImage(*args, **kwargs):
@@ -78,9 +81,19 @@ class FitsViewer(QtGui.QApplication):
         ui.actionLoadSession.triggered.connect(self.loadSession)
         ui.actionSaveSession.triggered.connect(self.saveSession)
 
+        # Populate visible docks
         ui.menuDisplay.addAction(ui.displayDock.toggleViewAction())
         ui.menuDisplay.addAction(ui.toolsDock.toggleViewAction())
         ui.menuDisplay.addAction(ui.fileDock.toggleViewAction())
+
+        # Create recent file actions
+        self.recent_file_acts = []
+        for i in range(self.MaxRecentFiles):
+            self.recent_file_acts.append(QtGui.QAction(self, visible=False,
+                                         triggered=self.loadRecentSession))
+
+        for i in range(self.MaxRecentFiles):
+            self.ui.menuRecentFiles.addAction(self.recent_file_acts[i])
 
         self.aboutToQuit.connect(self.saveConfig)
         self.aboutToQuit.connect(self._autoSaveSession)
@@ -136,7 +149,10 @@ class FitsViewer(QtGui.QApplication):
             self.ui.fileList.setCurrentIndex(self.model.index(0, 0))
 
     def setSelection(self, selection):
-        self.setFile(selection[0].indexes()[0])
+        try:
+            self.setFile(selection[0].indexes()[0])
+        except IndexError:
+            pass
 
     def next(self):
         current = self.ui.fileList.currentIndex().row()
@@ -163,8 +179,7 @@ class FitsViewer(QtGui.QApplication):
         """
         return QtCore.QSettings('Fits Viewer', 'pyfitsview')
 
-    def loadSession(self):
-        filen = QtGui.QFileDialog.getOpenFileName(caption='Save Session')
+    def _loadSessionConcrete(self, filen):
         f = open(filen)
         session = json.load(f)
         display = session['display']
@@ -173,8 +188,28 @@ class FitsViewer(QtGui.QApplication):
         self.ui.cutUpperValue.setValue(display['ucut'])
         self.ui.colourMap.setCurrentIndex(display['cmap'])
         self.ui.normalisation.setCurrentIndex(display['scale'])
+        self.model.removeRows(0, self.model.rowCount())
         self.addFiles(files=files)
         self._session_file = filen
+        self._addRecentFile(filen)
+
+    def _addRecentFile(self, filen):
+        try:
+            self.recent_files.remove(filen)
+        except ValueError:
+            pass
+        self.recent_files.insert(0, filen)
+        self.recent_files = self.recent_files[:self.MaxRecentFiles]
+        self._updateRecentFiles()
+
+    def loadSession(self):
+        filen = QtGui.QFileDialog.getOpenFileName(caption='Save Session')
+        self._loadSessionConcrete(filen)
+
+    def loadRecentSession(self):
+        action = self.sender()
+        if action:
+            self._loadSessionConcrete(str(action.data().toPyObject()))
 
     def _autoSaveSession(self):
         if self._session_file is not None:
@@ -195,6 +230,7 @@ class FitsViewer(QtGui.QApplication):
         }
         json.dump(session, f)
         f.close()
+        self._addRecentFile(filen)
 
     def saveSession(self):
         filen = QtGui.QFileDialog.getSaveFileName(caption='Save Session')
@@ -207,11 +243,28 @@ class FitsViewer(QtGui.QApplication):
         self.ui.restoreGeometry(settings.value('geometry', self.ui.saveGeometry()).toPyObject())
         settings.endGroup()
 
+        # Populate recent file list
+        self.recent_files = settings.value('Files/recent', []).toPyObject()
+        if self.recent_files is None:
+            self.recent_files = []
+        else:
+            self.recent_files = list(self.recent_files)
+        self._updateRecentFiles()
+
+    def _updateRecentFiles(self):
+        for i in range(len(self.recent_files)):
+            fn = self.recent_files[i]
+            name = os.path.basename(str(fn))
+            self.recent_file_acts[i].setText(name)
+            self.recent_file_acts[i].setData(fn)
+            self.recent_file_acts[i].setVisible(True)
+
     def saveConfig(self):
         settings = self._getSettings()
         settings.beginGroup('Window')
         settings.setValue('geometry', self.ui.saveGeometry())
         settings.endGroup()
+        settings.setValue('Files/recent', self.recent_files)
 
     @hasImage
     def saveImage(self):
