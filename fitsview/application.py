@@ -18,6 +18,7 @@ from astropy import units
 from PyQt4 import QtGui, QtCore, uic
 from functools import wraps
 from fitsview import FitsView
+import simplejson as json
 from common import *
 
 
@@ -35,65 +36,69 @@ class FitsViewer(QtGui.QApplication):
         return _hasImage
 
     def __init__(self, *args, **kwargs):
-        global USE_CAMERA
         QtGui.QApplication.__init__(self, *args, **kwargs)
-        self.ui = uic.loadUi(get_ui_file('viewer.ui'))
+        ui = uic.loadUi(get_ui_file('viewer.ui'))
+        self.ui = ui
         self.about_ui = uic.loadUi(get_ui_file('about.ui'))
         self.fits = FitsView()
         self.fits.hoverSignal.connect(self.updateStatus)
-        self.ui.setCentralWidget(self.fits)
+        self._session_file = None
+        ui.setCentralWidget(self.fits)
 
-        self.ui.setWindowIcon(QtGui.QIcon(get_ui_file('icon.svg')))
+        ui.setWindowIcon(QtGui.QIcon(get_ui_file('icon.svg')))
 
         if use_camera():
             ports = list_serial_ports()
             if len(ports) == 0:
-                self.ui.allSkyControls.hide()
+                ui.allSkyControls.hide()
             else:
-                self.ui.portChoice.addItems(ports)
-                self.ui.takeImage.clicked.connect(self.takeImage)
+                ui.portChoice.addItems(ports)
+                ui.takeImage.clicked.connect(self.takeImage)
 
-        self.ui.normalisation.addItems(self.fits.getScales().keys())
-        self.ui.normalisation.currentIndexChanged.connect(self.scaleChange)
+        ui.normalisation.addItems(self.fits.getScales().keys())
+        ui.normalisation.currentIndexChanged.connect(self.scaleChange)
 
-        self.ui.colourMap.addItems(get_colour_maps())
-        self.ui.colourMap.setCurrentIndex(get_colour_maps().index('gray'))
+        ui.colourMap.addItems(get_colour_maps())
+        ui.colourMap.setCurrentIndex(get_colour_maps().index('gray'))
 
-        self.ui.colourMap.currentIndexChanged.connect(self.cmapChange)
-        self.ui.cutUpperValue.valueChanged.connect(self.fits.setUpperCut)
-        self.ui.cutLowerValue.valueChanged.connect(self.fits.setLowerCut)
+        ui.colourMap.currentIndexChanged.connect(self.cmapChange)
+        ui.cutUpperValue.valueChanged.connect(self.fits.setUpperCut)
+        ui.cutLowerValue.valueChanged.connect(self.fits.setLowerCut)
 
-        self.ui.actionOpen.triggered.connect(self.addFiles)
-        self.ui.actionAbout.triggered.connect(self.about)
-        self.ui.actionSave.triggered.connect(self.saveImage)
-        self.ui.actionExport.triggered.connect(self.exportImage)
-        self.ui.actionFit_to_Window.triggered.connect(self.fits.zoomFit)
-        self.ui.actionZoom.triggered.connect(self.fits.zoom)
-        self.ui.actionPan.triggered.connect(self.fits.pan)
-        self.ui.actionNext.triggered.connect(self.next)
-        self.ui.actionPrevious.triggered.connect(self.previous)
-        self.ui.actionQuit.triggered.connect(self.quit)
+        ui.actionOpen.triggered.connect(self.addFiles)
+        ui.actionAbout.triggered.connect(self.about)
+        ui.actionSave.triggered.connect(self.saveImage)
+        ui.actionExport.triggered.connect(self.exportImage)
+        ui.actionFit_to_Window.triggered.connect(self.fits.zoomFit)
+        ui.actionZoom.triggered.connect(self.fits.zoom)
+        ui.actionPan.triggered.connect(self.fits.pan)
+        ui.actionNext.triggered.connect(self.next)
+        ui.actionPrevious.triggered.connect(self.previous)
+        ui.actionQuit.triggered.connect(self.quit)
+        ui.actionLoadSession.triggered.connect(self.loadSession)
+        ui.actionSaveSession.triggered.connect(self.saveSession)
 
-        self.ui.menuDisplay.addAction(self.ui.displayDock.toggleViewAction())
-        self.ui.menuDisplay.addAction(self.ui.toolsDock.toggleViewAction())
-        self.ui.menuDisplay.addAction(self.ui.fileDock.toggleViewAction())
+        ui.menuDisplay.addAction(ui.displayDock.toggleViewAction())
+        ui.menuDisplay.addAction(ui.toolsDock.toggleViewAction())
+        ui.menuDisplay.addAction(ui.fileDock.toggleViewAction())
 
         self.aboutToQuit.connect(self.saveConfig)
+        self.aboutToQuit.connect(self._autoSaveSession)
 
         self.fits._mpl_toolbar._actions['pan'].toggled.connect(self.panUpdate)
         self.fits._mpl_toolbar._actions['zoom'].toggled.connect(self.zoomUpdate)
 
         self.status = QtGui.QLabel()
         self.status.setText('No Image Loaded')
-        self.ui.statusBar().addWidget(self.status)
+        ui.statusBar().addWidget(self.status)
 
         self.model = QtGui.QStandardItemModel()
-        self.ui.fileList.setModel(self.model)
-        self.ui.fileList.selectionModel().selectionChanged.connect(self.setSelection)
+        ui.fileList.setModel(self.model)
+        ui.fileList.selectionModel().selectionChanged.connect(self.setSelection)
 
-        self.ui.tabifyDockWidget(self.ui.toolsDock, self.ui.displayDock)
+        ui.tabifyDockWidget(ui.toolsDock, ui.displayDock)
 
-        self.ui.show()
+        ui.show()
         self.loadConfig()
 
     def updateStatus(self, x, y, value, ra_d, dec_d):
@@ -158,28 +163,54 @@ class FitsViewer(QtGui.QApplication):
         """
         return QtCore.QSettings('Fits Viewer', 'pyfitsview')
 
+    def loadSession(self):
+        filen = QtGui.QFileDialog.getOpenFileName(caption='Save Session')
+        f = open(filen)
+        session = json.load(f)
+        display = session['display']
+        files = session['files']
+        self.ui.cutLowerValue.setValue(display['lcut'])
+        self.ui.cutUpperValue.setValue(display['ucut'])
+        self.ui.colourMap.setCurrentIndex(display['cmap'])
+        self.ui.normalisation.setCurrentIndex(display['scale'])
+        self.addFiles(files=files)
+        self._session_file = filen
+
+    def _autoSaveSession(self):
+        if self._session_file is not None:
+            self._saveSessionConcrete(self._session_file)
+
+    def _saveSessionConcrete(self, filen):
+        f = open(filen, 'w')
+        display = {
+            'lcut': self.ui.cutLowerValue.value(),
+            'ucut': self.ui.cutUpperValue.value(),
+            'cmap': self.ui.colourMap.currentIndex(),
+            'scale': self.ui.normalisation.currentIndex()
+        }
+        files = [str(self.model.item(i).fn) for i in range(self.model.rowCount())]
+        session = {
+            'display': display,
+            'files': files
+        }
+        json.dump(session, f)
+        f.close()
+
+    def saveSession(self):
+        filen = QtGui.QFileDialog.getSaveFileName(caption='Save Session')
+        self._session_file = filen
+        self._saveSessionConcrete(filen)
+
     def loadConfig(self):
         settings = self._getSettings()
         settings.beginGroup('Window')
         self.ui.restoreGeometry(settings.value('geometry', self.ui.saveGeometry()).toPyObject())
-        settings.endGroup()
-        settings.beginGroup('Display')
-        self.ui.cutLowerValue.setValue(settings.value('lcut', self.ui.cutLowerValue.value()).toPyObject())
-        self.ui.cutUpperValue.setValue(settings.value('ucut', self.ui.cutUpperValue.value()).toPyObject())
-        self.ui.colourMap.setCurrentIndex(settings.value('cmap', self.ui.colourMap.currentIndex()).toPyObject())
-        self.ui.normalisation.setCurrentIndex(settings.value('scale', self.ui.normalisation.currentIndex()).toPyObject())
         settings.endGroup()
 
     def saveConfig(self):
         settings = self._getSettings()
         settings.beginGroup('Window')
         settings.setValue('geometry', self.ui.saveGeometry())
-        settings.endGroup()
-        settings.beginGroup('Display')
-        settings.setValue('lcut', self.ui.cutLowerValue.value())
-        settings.setValue('ucut', self.ui.cutUpperValue.value())
-        settings.setValue('cmap', self.ui.colourMap.currentIndex())
-        settings.setValue('scale', self.ui.normalisation.currentIndex())
         settings.endGroup()
 
     @hasImage
