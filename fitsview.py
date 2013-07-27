@@ -17,6 +17,14 @@ from fitsview import FitsViewer
 import sys
 import os
 
+
+def safe_remove(args, arg):
+    try:
+        args.remove(arg)
+    except IndexError:
+        pass
+
+
 def main():
     app = FitsViewer(sys.argv)
     args = app.arguments()
@@ -24,8 +32,8 @@ def main():
     # Strip first argument if running on windows
     args = list(args)
     if os.name == 'nt':
-        args.remove('-u')
-        args.remove('fitsview.py')
+        safe_remove(args, '-u')
+        safe_remove(args, 'fitsview.py')
 
     if len(args) > 1:
         app.addFiles(files=args[1:])
