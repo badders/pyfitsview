@@ -22,8 +22,10 @@ def main():
     args = app.arguments()
     
     # Strip first argument if running on windows
+    args = list(args)
     if os.name == 'nt':
-        args = args[1:]
+        args.remove('-u')
+        args.remove('fitsview.py')
 
     if len(args) > 1:
         app.addFiles(files=args[1:])
