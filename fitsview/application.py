@@ -57,6 +57,8 @@ class FitsViewer(QtGui.QApplication):
             else:
                 ui.portChoice.addItems(ports)
                 ui.takeImage.clicked.connect(self.takeImage)
+        else:
+            ui.allSkyControls.hide()
 
         ui.normalisation.addItems(self.fits.getScales().keys())
         ui.normalisation.currentIndexChanged.connect(self.scaleChange)
