@@ -15,11 +15,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
 from fitsview import FitsViewer
 import sys
-
+import os
 
 def main():
     app = FitsViewer(sys.argv)
     args = app.arguments()
+    
+    # Strip first argument if running on windows
+    if os.name == 'nt':
+        args = args[1:]
+
     if len(args) > 1:
         app.addFiles(files=args[1:])
     sys.exit(app.exec_())
