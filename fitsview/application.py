@@ -162,12 +162,12 @@ class FitsViewer(QtGui.QApplication):
     def addAperture(self):
         self.fits.newAperture()
         self.ui.apertureList.clear()
-        apertures = self.fits.apertures()
+        apertures = self.fits.apertures
         self.ui.apertureList.addItems([a.name for a in apertures])
         self.ui.apertureList.setCurrentIndex(len(apertures) - 1)
 
     def apertureIndexChanged(self, index):
-        aperture = self.fits.apertures()[index]
+        aperture = self.fits.apertures[index]
         self.ui.apertureRadius.setValue(aperture.r)
         self.ui.apertureBGRadius.setValue(aperture.br)
 
@@ -321,7 +321,7 @@ class FitsViewer(QtGui.QApplication):
             'scale': self.ui.normalisation.currentIndex()
         }
         files = [str(self.model.item(i).fn) for i in range(self.model.rowCount())]
-        apertures = [ap.toDict() for ap in self.fits.apertures()]
+        apertures = [ap.toDict() for ap in self.fits.apertures]
         session = {
             'display': display,
             'files': files,

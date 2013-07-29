@@ -13,6 +13,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
+import matplotlib.pyplot as plt
 
 
 class Aperture:
@@ -22,6 +23,11 @@ class Aperture:
         self.r = r
         self.br = br
         self.name = name
+        self.artist = plt.Circle((x, y), r, edgecolor='yellow', facecolor='none')
+
+    def refresh(self):
+        self.artist.center = (self.x, self.y)
+        self.artist.set_radius(self.r)
 
     @classmethod
     def fromDict(cls, d):

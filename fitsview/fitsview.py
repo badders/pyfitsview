@@ -17,7 +17,6 @@ from collections import OrderedDict
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
 import astropy.io.fits as fits
 import aplpy
 import dateutil
@@ -29,7 +28,7 @@ from common import *
 
 class FitsView(FigureCanvasQTAgg):
     """
-    A FITS image viewer base on matplotlib, rendering is done using the astropy
+    A FITS image viewer base on matplotlib, rendering is done using the aplpy
     library.
     """
     hoverSignal = QtCore.pyqtSignal(int, int, int, float, float)
@@ -78,6 +77,12 @@ class FitsView(FigureCanvasQTAgg):
         self._timer = False
         self._apcount = 0
         self.clearApetures()
+        self.dragging = None
+
+        # Conect Drag events
+        self.mpl_connect('button_press_event', self.startDrag)
+        self.mpl_connect('button_release_event', self.stopDrag)
+        self.mpl_connect('motion_notify_event', self.dragMotion)
 
     def _refreshConcrete(self):
         self._timer = False
@@ -93,13 +98,33 @@ class FitsView(FigureCanvasQTAgg):
 
     def _drawAperture(self, ap):
         ax = self._fig.gca()
-        circ = plt.Circle((ap.x, ap.y), ap.r, edgecolor='green', facecolor='white')
-        ax.add_artist(circ)
+        ax.add_artist(ap.artist)
         self.draw()
 
     def drawApertures(self):
-        for ap in self._apertures:
+        for ap in self.apertures:
             self._drawAperture(ap)
+
+    def startDrag(self, event):
+        ap = None
+        for a in self.apertures:
+            if a.artist.contains(event):
+                ap = a
+
+        if ap is not None:
+            self.dragging = ap
+
+    def stopDrag(self, event):
+        self.dragging = None
+
+    def dragMotion(self, event):
+        if self.dragging is None:
+            return
+
+        self.dragging.x = event.xdata
+        self.dragging.y = event.ydata
+        self.dragging.refresh()
+        self.draw()
 
     @refresh
     def loadImage(self, filename):
@@ -137,7 +162,7 @@ class FitsView(FigureCanvasQTAgg):
         return self._gc._header['EXPOSURE']
 
     def clearApetures(self):
-        self._apertures = []
+        self.apertures = []
 
     @hasImage
     def newAperture(self):
@@ -145,17 +170,11 @@ class FitsView(FigureCanvasQTAgg):
         x, y = self._gc._data.shape
         ap = Aperture(x / 2.0, y / 2.0)
         ap.name = "Aperture {}".format(self._apcount)
-        self._apertures.append(ap)
+        self.apertures.append(ap)
         self._drawAperture(ap)
 
     def setApertures(self, apertures):
-        self._apertures = apertures
-
-    def apertureSelected(self):
-        pass
-
-    def apertures(self):
-        return self._apertures
+        self.apertures = apertures
 
     @refresh
     def setCMAP(self, cmap):
