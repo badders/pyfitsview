@@ -50,6 +50,7 @@ class FitsViewer(QtGui.QApplication):
 
         ui.setWindowIcon(QtGui.QIcon(get_ui_file('icon.svg')))
 
+        # Optional AllSky camera tools
         if use_camera():
             ports = list_serial_ports()
             if len(ports) == 0:
@@ -60,6 +61,7 @@ class FitsViewer(QtGui.QApplication):
         else:
             ui.allSkyControls.hide()
 
+        # Display tools
         ui.normalisation.addItems(self.fits.getScales().keys())
         ui.normalisation.currentIndexChanged.connect(self.scaleChange)
 
@@ -70,6 +72,7 @@ class FitsViewer(QtGui.QApplication):
         ui.cutUpperValue.valueChanged.connect(self.fits.setUpperCut)
         ui.cutLowerValue.valueChanged.connect(self.fits.setLowerCut)
 
+        # Connect up general actions
         ui.actionOpen.triggered.connect(self.addFiles)
         ui.actionAbout.triggered.connect(self.about_ui.show)
         ui.actionSave.triggered.connect(self.saveImage)
@@ -82,6 +85,9 @@ class FitsViewer(QtGui.QApplication):
         ui.actionQuit.triggered.connect(self.quit)
         ui.actionLoadSession.triggered.connect(self.loadSession)
         ui.actionSaveSession.triggered.connect(self.saveSession)
+
+        # Aperture Tools
+        ui.apertureCreate.clicked.connect(self.addAperture)
 
         # Populate visible docks
         ui.menuDisplay.addAction(ui.displayDock.toggleViewAction())
@@ -100,6 +106,7 @@ class FitsViewer(QtGui.QApplication):
         self.aboutToQuit.connect(self.saveConfig)
         self.aboutToQuit.connect(self._autoSaveSession)
 
+        # Connect matplot zoom/pan tools
         self.fits._mpl_toolbar._actions['pan'].toggled.connect(self.panUpdate)
         self.fits._mpl_toolbar._actions['zoom'].toggled.connect(self.zoomUpdate)
 
@@ -147,6 +154,11 @@ class FitsViewer(QtGui.QApplication):
 
     def scaleChange(self, index):
         self.fits.setScale(self.ui.normalisation.itemText(index))
+
+    def addAperture(self):
+        self.fits.newAperture()
+        self.ui.apertureList.clear()
+        self.ui.apertureList.addItems(self.fits.apertures())
 
     def addFiles(self, *args, **kwargs):
         """
