@@ -13,21 +13,35 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
-import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
+from PyQt4 import QtCore
+import numpy as np
 
 
-class Aperture:
+class Aperture(QtCore.QObject):
+    selectedSignal = QtCore.pyqtSignal(object)
+
     def __init__(self, x, y, r=10, br=20, name='Aperture'):
         self.x = x
         self.y = y
         self.r = r
         self.br = br
         self.name = name
-        self.artist = plt.Circle((x, y), r, edgecolor='yellow', facecolor='none')
+        self.inner = Circle((x, y), r, edgecolor='yellow', facecolor='none')
+        self.outer = Circle((x, y), br, linestyle='dotted', edgecolor='yellow', facecolor='none')
 
     def refresh(self):
-        self.artist.center = (self.x, self.y)
-        self.artist.set_radius(self.r)
+        self.outer.center = self.inner.center = (self.x, self.y)
+        self.inner.r = self.r
+        self.outer.br = self.br
+
+    def addToAxes(self, axes):
+        axes.add_artist(self.inner)
+        axes.add_artist(self.outer)
+
+    def contains(self, event):
+        rdiff = np.sqrt(((np.array(self.outer.center) - np.array([event.xdata, event.ydata])) ** 2).sum())
+        return rdiff < self.br
 
     @classmethod
     def fromDict(cls, d):

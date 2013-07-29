@@ -1,34 +1,26 @@
 from setuptools import setup
 
-APP = ['fitsview.py']
-DATA_FILES = ['ui']
-
-OPTIONS = {
-    'argv_emulation': True,
-    'packages': ['astropy', 'matplotlib', 'scipy', 'numpy'],
-    'includes': ['PyQt4', 'PyQt4.QtCore', 'PyQt4.QtGui', 'sip'],
-    'excludes': ['PyQt4.QtDesigner', 'PyQt4.QtNetwork', 'PyQt4.QtOpenGL', 'sympy',
-                 'PyQt4.QtScript', 'PyQt4.QtSql', 'PyQt4.QtWebKit', 'PyQt4.QtXml',
-                 'PyQt4.phonon', 'Tkinter', 'PyQt4.uic.port_v3', 'matplotlib.tests'],
-    'iconfile': 'ui/icon.icns',
-    'resources': ['ui/image-fits.icns'],
-    'plist': dict(
-        CFBundleDocumentTypes=[
-                dict(
-                    CFBundleTypeName='Flexible Image Transport System document',
-                    CFBundleTypeIconFile='ui/image-fits.icns',
-                    CFBundleTypeExtensions=['fits', 'fit', 'fts'],
-                    CFBundleTypeOSTypes=['FITS'],
-                    CFBundleTypeRole='Viewer'),
-        ],
-        CFBundleName='Fits Viewer',
-        CFBundleDisplayName='Fits Viewer',
-    )
-}
-
 setup(
-    app=APP,
-    data_files=DATA_FILES,
-    options={'py2app': OPTIONS},
-    setup_requires=['py2app'],
+    name='Fits Viewer',
+    version='0.2.0a',
+    description='Explore sets of astronomical FITS images',
+    long_description=(open('README.md').read()),
+    url='http://github.com/badders/pyfitsview/',
+    license='GPL',
+    author='Tom Badran',
+    author_email='tom@badrunner.net',
+    py_modules=['fitsview'],
+    include_package_data=True,
+    package_data=['README.md', 'COPYING', 'ui/*'],
+    classifiers=[
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Science/Research',
+        'Natural Language :: English',
+        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+        'Operating System :: MacOS :: MacOS X',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX',
+        'Programming Language :: Python',
+        'Topic :: Scientific/Engineering :: Astronomy',
+    ],
 )

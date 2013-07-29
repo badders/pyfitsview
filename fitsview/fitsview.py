@@ -75,7 +75,6 @@ class FitsView(FigureCanvasQTAgg):
         self._lowerCut = 0.25
         self._cmap = 'gray'
         self._timer = False
-        self._apcount = 0
         self.clearApetures()
         self.dragging = None
 
@@ -98,7 +97,7 @@ class FitsView(FigureCanvasQTAgg):
 
     def _drawAperture(self, ap):
         ax = self._fig.gca()
-        ax.add_artist(ap.artist)
+        ap.addToAxes(ax)
         self.draw()
 
     def drawApertures(self):
@@ -106,13 +105,12 @@ class FitsView(FigureCanvasQTAgg):
             self._drawAperture(ap)
 
     def startDrag(self, event):
-        ap = None
+        print event.xdata, event.ydata
         for a in self.apertures:
-            if a.artist.contains(event):
-                ap = a
-
-        if ap is not None:
-            self.dragging = ap
+            if a.contains(event):
+                print a.outer.center
+                print a.outer.radius
+                self.dragging = a
 
     def stopDrag(self, event):
         self.dragging = None
@@ -166,10 +164,9 @@ class FitsView(FigureCanvasQTAgg):
 
     @hasImage
     def newAperture(self):
-        self._apcount += 1
         x, y = self._gc._data.shape
         ap = Aperture(x / 2.0, y / 2.0)
-        ap.name = "Aperture {}".format(self._apcount)
+        ap.name = "Aperture {}".format(len(self.apertures) + 1)
         self.apertures.append(ap)
         self._drawAperture(ap)
 
