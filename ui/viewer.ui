@@ -560,7 +560,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QDoubleSpinBox" name="apetureBGRadius">
+         <widget class="QDoubleSpinBox" name="apertureBGRadius">
           <property name="prefix">
            <string>Outer Radius </string>
           </property>

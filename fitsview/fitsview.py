@@ -17,11 +17,13 @@ from collections import OrderedDict
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 import astropy.io.fits as fits
 import aplpy
 import dateutil
 from PyQt4 import QtGui, QtCore
 from functools import wraps
+from aperture import Aperture
 from common import *
 
 
@@ -74,6 +76,8 @@ class FitsView(FigureCanvasQTAgg):
         self._lowerCut = 0.25
         self._cmap = 'gray'
         self._timer = False
+        self._apcount = 0
+        self.clearApetures()
 
     def _refreshConcrete(self):
         self._timer = False
@@ -85,6 +89,17 @@ class FitsView(FigureCanvasQTAgg):
             self._gc.tick_labels.hide()
             self._gc.ticks.hide()
             self._gc.frame.set_linewidth(0)
+            self.drawApertures()
+
+    def _drawAperture(self, ap):
+        ax = self._fig.gca()
+        circ = plt.Circle((ap.x, ap.y), ap.r, edgecolor='green', facecolor='white')
+        ax.add_artist(circ)
+        self.draw()
+
+    def drawApertures(self):
+        for ap in self._apertures:
+            self._drawAperture(ap)
 
     @refresh
     def loadImage(self, filename):
@@ -120,6 +135,27 @@ class FitsView(FigureCanvasQTAgg):
 
     def getImageExposure(self):
         return self._gc._header['EXPOSURE']
+
+    def clearApetures(self):
+        self._apertures = []
+
+    @hasImage
+    def newAperture(self):
+        self._apcount += 1
+        x, y = self._gc._data.shape
+        ap = Aperture(x / 2.0, y / 2.0)
+        ap.name = "Aperture {}".format(self._apcount)
+        self._apertures.append(ap)
+        self._drawAperture(ap)
+
+    def setApertures(self, apertures):
+        self._apertures = apertures
+
+    def apertureSelected(self):
+        pass
+
+    def apertures(self):
+        return self._apertures
 
     @refresh
     def setCMAP(self, cmap):

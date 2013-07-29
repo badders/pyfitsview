@@ -17,8 +17,9 @@ from astropy import coordinates
 from astropy import units
 from PyQt4 import QtGui, QtCore, uic
 from functools import wraps
-from fitsview import FitsView
+from fitsview import FitsView, Aperture
 import simplejson as json
+import logging
 import os
 from common import *
 
@@ -88,6 +89,9 @@ class FitsViewer(QtGui.QApplication):
 
         # Aperture Tools
         ui.apertureCreate.clicked.connect(self.addAperture)
+        ui.apertureList.currentIndexChanged.connect(self.apertureIndexChanged)
+        ui.apertureRadius.valueChanged.connect(self.apertureRadiusChange)
+        ui.apertureBGRadius.valueChanged.connect(self.apertureRadiusChange)
 
         # Populate visible docks
         ui.menuDisplay.addAction(ui.displayDock.toggleViewAction())
@@ -158,7 +162,17 @@ class FitsViewer(QtGui.QApplication):
     def addAperture(self):
         self.fits.newAperture()
         self.ui.apertureList.clear()
-        self.ui.apertureList.addItems(self.fits.apertures())
+        apertures = self.fits.apertures()
+        self.ui.apertureList.addItems([a.name for a in apertures])
+        self.ui.apertureList.setCurrentIndex(len(apertures) - 1)
+
+    def apertureIndexChanged(self, index):
+        aperture = self.fits.apertures()[index]
+        self.ui.apertureRadius.setValue(aperture.r)
+        self.ui.apertureBGRadius.setValue(aperture.br)
+
+    def apertureRadiusChange(self):
+        pass
 
     def addFiles(self, *args, **kwargs):
         """
@@ -233,16 +247,32 @@ class FitsViewer(QtGui.QApplication):
         """
         f = open(filen)
         session = json.load(f)
-        display = session['display']
-        files = session['files']
-        self.ui.cutLowerValue.setValue(display['lcut'])
-        self.ui.cutUpperValue.setValue(display['ucut'])
-        self.ui.colourMap.setCurrentIndex(display['cmap'])
-        self.ui.normalisation.setCurrentIndex(display['scale'])
-        self.model.removeRows(0, self.model.rowCount())
-        self.addFiles(files=files)
-        self._session_file = filen
-        self._addRecentFile(filen)
+
+        try:
+            display = session['display']
+            self.ui.cutLowerValue.setValue(display['lcut'])
+            self.ui.cutUpperValue.setValue(display['ucut'])
+            self.ui.colourMap.setCurrentIndex(display['cmap'])
+            self.ui.normalisation.setCurrentIndex(display['scale'])
+        except KeyError:
+            logging.warning('display section missing or corrupted in session file')
+
+        try:
+            files = session['files']
+            self.model.removeRows(0, self.model.rowCount())
+            self.addFiles(files=files)
+            self._session_file = filen
+            self._addRecentFile(filen)
+        except KeyError:
+            logging.warning('files section missing or corrupted in session file')
+
+        try:
+            apertures = [Aperture.fromDict(ap) for ap in session['apertures']]
+            self.fits.setApertures(apertures)
+            self.ui.apertureList.clear()
+            self.ui.apertureList.addItems([a.name for a in apertures])
+        except KeyError:
+            logging.warning('apertures section missing or corrupted in session file')
 
     def _addRecentFile(self, filen):
         """
@@ -291,9 +321,11 @@ class FitsViewer(QtGui.QApplication):
             'scale': self.ui.normalisation.currentIndex()
         }
         files = [str(self.model.item(i).fn) for i in range(self.model.rowCount())]
+        apertures = [ap.toDict() for ap in self.fits.apertures()]
         session = {
             'display': display,
-            'files': files
+            'files': files,
+            'apertures': apertures
         }
         json.dump(session, f)
         f.close()
@@ -322,7 +354,7 @@ class FitsViewer(QtGui.QApplication):
         if self.recent_files is None:
             self.recent_files = []
         else:
-            self.recent_files = list(self.recent_files)
+            self.recent_files = [i for i in list(self.recent_files) if os.path.isfile(i)]
         self._updateRecentFiles()
 
     def _updateRecentFiles(self):
