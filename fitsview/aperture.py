@@ -16,15 +16,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 from matplotlib.patches import Circle
 from PyQt4 import QtCore
 import numpy as np
+from photometry import Aperture
 
 
-class Aperture(QtCore.QObject):
+class ApertureWrapper(QtCore.QObject, Aperture):
     def __init__(self, x, y, r=10, br=20, name='Aperture'):
-        self.x = x
-        self.y = y
-        self.r = r
-        self.br = br
-        self.name = name
+        QtCore.QObject.__init__(self)
+        Aperture.__init__(self, x, y, r, br, name)
         self.inner = Circle((x, y), r, edgecolor='yellow', facecolor='none')
         self.outer = Circle((x, y), br, linestyle='dotted', edgecolor='yellow', facecolor='none')
 
@@ -42,14 +40,3 @@ class Aperture(QtCore.QObject):
     def contains(self, event):
         rdiff = np.sqrt(((np.array(self.outer.center) - np.array([event.xdata, event.ydata])) ** 2).sum())
         return rdiff < self.br
-
-    @classmethod
-    def fromDict(cls, d):
-        return cls(d['x'], d['y'], d['r'], d['br'], d['name'])
-
-    def toDict(self):
-        return {'x': self.x,
-                'y': self.y,
-                'r': self.r,
-                'br': self.br,
-                'name': self.name}

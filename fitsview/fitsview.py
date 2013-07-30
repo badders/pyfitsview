@@ -22,7 +22,7 @@ import aplpy
 import dateutil
 from PyQt4 import QtGui, QtCore
 from functools import wraps
-from aperture import Aperture
+from aperture import ApertureWrapper as Aperture
 from common import *
 
 
@@ -55,7 +55,7 @@ class FitsView(FigureCanvasQTAgg):
         return _hasImage
 
     def __init__(self):
-        self._fig = Figure(dpi=96)
+        self._fig = Figure(dpi=170)
         FigureCanvasQTAgg.__init__(self, self._fig)
         FigureCanvasQTAgg.setSizePolicy(self,
                                         QtGui.QSizePolicy.Expanding,

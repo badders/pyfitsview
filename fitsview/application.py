@@ -94,6 +94,8 @@ class FitsViewer(QtGui.QApplication):
         ui.apertureList.editTextChanged.connect(self.apertureRename)
         ui.apertureRadius.valueChanged.connect(self.apertureRadiusChange)
         ui.apertureBGRadius.valueChanged.connect(self.apertureBGRadiusChange)
+        ui.actionPreviewTransition.triggered.connect(self.showTransition)
+        ui.actionExportTransitionData.triggered.connect(self.exportTransition)
 
         # Populate visible docks
         ui.menuDisplay.addAction(ui.displayDock.toggleViewAction())
@@ -194,6 +196,12 @@ class FitsViewer(QtGui.QApplication):
         aperture.br = value
         aperture.refresh()
         self.fits.draw()
+
+    def showTransition(self):
+        pass
+
+    def exportTransition(self):
+        pass
 
     def addFiles(self, *args, **kwargs):
         """
