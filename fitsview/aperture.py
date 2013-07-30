@@ -19,8 +19,6 @@ import numpy as np
 
 
 class Aperture(QtCore.QObject):
-    selectedSignal = QtCore.pyqtSignal(object)
-
     def __init__(self, x, y, r=10, br=20, name='Aperture'):
         self.x = x
         self.y = y
@@ -36,8 +34,10 @@ class Aperture(QtCore.QObject):
         self.outer.br = self.br
 
     def addToAxes(self, axes):
-        axes.add_artist(self.inner)
-        axes.add_artist(self.outer)
+        axes.add_patch(self.inner)
+        self.inner.set_transform(axes.transData)
+        axes.add_patch(self.outer)
+        self.outer.set_transform(axes.transData)
 
     def contains(self, event):
         rdiff = np.sqrt(((np.array(self.outer.center) - np.array([event.xdata, event.ydata])) ** 2).sum())

@@ -46,6 +46,7 @@ class FitsViewer(QtGui.QApplication):
         self.about_ui = uic.loadUi(get_ui_file('about.ui'))
         self.fits = FitsView()
         self.fits.hoverSignal.connect(self.updateStatus)
+        self.fits.selectSignal.connect(self.apertureSelectionChanged)
         self._session_file = None
         ui.setCentralWidget(self.fits)
 
@@ -170,6 +171,12 @@ class FitsViewer(QtGui.QApplication):
         aperture = self.fits.apertures[index]
         self.ui.apertureRadius.setValue(aperture.r)
         self.ui.apertureBGRadius.setValue(aperture.br)
+
+    def apertureSelectionChanged(self, ap):
+        apertures = self.fits.apertures
+        for i in range(len(apertures)):
+            if apertures[i] is ap:
+                self.ui.apertureList.setCurrentIndex(i)
 
     def apertureRadiusChange(self):
         pass

@@ -32,6 +32,7 @@ class FitsView(FigureCanvasQTAgg):
     library.
     """
     hoverSignal = QtCore.pyqtSignal(int, int, int, float, float)
+    selectSignal = QtCore.pyqtSignal(object)
 
     def refresh(f):
         @wraps(f)
@@ -75,7 +76,7 @@ class FitsView(FigureCanvasQTAgg):
         self._lowerCut = 0.25
         self._cmap = 'gray'
         self._timer = False
-        self.clearApetures()
+        self.apertures = []
         self.dragging = None
 
         # Conect Drag events
@@ -93,24 +94,22 @@ class FitsView(FigureCanvasQTAgg):
             self._gc.tick_labels.hide()
             self._gc.ticks.hide()
             self._gc.frame.set_linewidth(0)
-            self.drawApertures()
 
     def _drawAperture(self, ap):
         ax = self._fig.gca()
         ap.addToAxes(ax)
-        self.draw()
 
     def drawApertures(self):
         for ap in self.apertures:
             self._drawAperture(ap)
+        self.draw()
 
     def startDrag(self, event):
-        print event.xdata, event.ydata
         for a in self.apertures:
             if a.contains(event):
-                print a.outer.center
-                print a.outer.radius
                 self.dragging = a
+                self.selectSignal.emit(a)
+                return
 
     def stopDrag(self, event):
         self.dragging = None
@@ -132,6 +131,7 @@ class FitsView(FigureCanvasQTAgg):
         """
         self._fig.clear()
         self._gc = aplpy.FITSFigure(filename, figure=self._fig)
+        self.drawApertures()
 
     @refresh
     def takeImage(self, exposure, progress, dev='/dev/tty.usberial'):
@@ -159,9 +159,6 @@ class FitsView(FigureCanvasQTAgg):
     def getImageExposure(self):
         return self._gc._header['EXPOSURE']
 
-    def clearApetures(self):
-        self.apertures = []
-
     @hasImage
     def newAperture(self):
         x, y = self._gc._data.shape
@@ -169,6 +166,7 @@ class FitsView(FigureCanvasQTAgg):
         ap.name = "Aperture {}".format(len(self.apertures) + 1)
         self.apertures.append(ap)
         self._drawAperture(ap)
+        self.draw()
 
     def setApertures(self, apertures):
         self.apertures = apertures
