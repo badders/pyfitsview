@@ -30,8 +30,8 @@ class Aperture(QtCore.QObject):
 
     def refresh(self):
         self.outer.center = self.inner.center = (self.x, self.y)
-        self.inner.r = self.r
-        self.outer.br = self.br
+        self.inner.set_radius(self.r)
+        self.outer.set_radius(self.br)
 
     def addToAxes(self, axes):
         axes.add_patch(self.inner)

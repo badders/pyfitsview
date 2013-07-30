@@ -91,8 +91,9 @@ class FitsViewer(QtGui.QApplication):
         # Aperture Tools
         ui.apertureCreate.clicked.connect(self.addAperture)
         ui.apertureList.currentIndexChanged.connect(self.apertureIndexChanged)
+        ui.apertureList.editTextChanged.connect(self.apertureRename)
         ui.apertureRadius.valueChanged.connect(self.apertureRadiusChange)
-        ui.apertureBGRadius.valueChanged.connect(self.apertureRadiusChange)
+        ui.apertureBGRadius.valueChanged.connect(self.apertureBGRadiusChange)
 
         # Populate visible docks
         ui.menuDisplay.addAction(ui.displayDock.toggleViewAction())
@@ -172,14 +173,27 @@ class FitsViewer(QtGui.QApplication):
         self.ui.apertureRadius.setValue(aperture.r)
         self.ui.apertureBGRadius.setValue(aperture.br)
 
+    def apertureRename(self, name):
+        aperture = self.fits.apertures[self.ui.apertureList.currentIndex()]
+        aperture.name = name
+
     def apertureSelectionChanged(self, ap):
         apertures = self.fits.apertures
         for i in range(len(apertures)):
             if apertures[i] is ap:
                 self.ui.apertureList.setCurrentIndex(i)
 
-    def apertureRadiusChange(self):
-        pass
+    def apertureRadiusChange(self, value):
+        aperture = self.fits.apertures[self.ui.apertureList.currentIndex()]
+        aperture.r = value
+        aperture.refresh()
+        self.fits.draw()
+
+    def apertureBGRadiusChange(self, value):
+        aperture = self.fits.apertures[self.ui.apertureList.currentIndex()]
+        aperture.br = value
+        aperture.refresh()
+        self.fits.draw()
 
     def addFiles(self, *args, **kwargs):
         """
