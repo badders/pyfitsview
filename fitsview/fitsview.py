@@ -22,8 +22,8 @@ import aplpy
 import dateutil
 from PyQt4 import QtGui, QtCore
 from functools import wraps
-from aperture import ApertureWrapper as Aperture
-from common import *
+from .aperture import ApertureWrapper as Aperture
+from .common import *
 
 
 class FitsView(FigureCanvasQTAgg):
@@ -31,17 +31,14 @@ class FitsView(FigureCanvasQTAgg):
     A FITS image viewer base on matplotlib, rendering is done using the aplpy
     library.
     """
-    hoverSignal = QtCore.pyqtSignal(int, int, int, float, float)
-    selectSignal = QtCore.pyqtSignal(object)
+    hoverSignal = QtCore.Signal(int, int, int, float, float)
+    selectSignal = QtCore.Signal(object)
 
     def refresh(f):
         @wraps(f)
         def _refresh(*args, **kwargs):
             ret = f(*args, **kwargs)
-            fv = args[0]
-            if not fv._timer:
-                QtCore.QTimer.singleShot(100, fv._refreshConcrete)
-                fv._timer = True
+            args[0]._refresh_timer.start(150)
             return ret
         return _refresh
 
@@ -75,7 +72,9 @@ class FitsView(FigureCanvasQTAgg):
         self._upperCut = 99.75
         self._lowerCut = 0.25
         self._cmap = 'gray'
-        self._timer = False
+        self._refresh_timer = QtCore.QTimer(self)
+        self._refresh_timer.setSingleShot(True)
+        self._refresh_timer.timeout.connect(self._refreshConcrete)
         self.apertures = []
         self.dragging = None
 
@@ -85,7 +84,6 @@ class FitsView(FigureCanvasQTAgg):
         self.mpl_connect('motion_notify_event', self.dragMotion)
 
     def _refreshConcrete(self):
-        self._timer = False
         if self._gc:
             self._gc.show_colorscale(pmin=self._lowerCut, pmax=self._upperCut,
                                      stretch=self._scale, aspect='auto',

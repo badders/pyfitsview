@@ -17,11 +17,14 @@ from astropy import coordinates
 from astropy import units
 from PyQt4 import QtGui, QtCore, uic
 from functools import wraps
-from fitsview import FitsView, Aperture
+from .fitsview import FitsView, Aperture
+from photometry import do_photometry
+from numpy import savetxt
+from datetime import datetime
 import simplejson as json
 import logging
 import os
-from common import *
+from .common import *
 
 
 class FitsViewer(QtGui.QApplication):
@@ -43,6 +46,8 @@ class FitsViewer(QtGui.QApplication):
         QtGui.QApplication.__init__(self, *args, **kwargs)
         ui = uic.loadUi(get_ui_file('viewer.ui'))
         self.ui = ui
+        ui.show()
+
         self.about_ui = uic.loadUi(get_ui_file('about.ui'))
         self.fits = FitsView()
         self.fits.hoverSignal.connect(self.updateStatus)
@@ -64,7 +69,7 @@ class FitsViewer(QtGui.QApplication):
             ui.allSkyControls.hide()
 
         # Display tools
-        ui.normalisation.addItems(self.fits.getScales().keys())
+        ui.normalisation.addItems(list(self.fits.getScales().keys()))
         ui.normalisation.currentIndexChanged.connect(self.scaleChange)
 
         ui.colourMap.addItems(get_colour_maps())
@@ -82,7 +87,7 @@ class FitsViewer(QtGui.QApplication):
         ui.actionFit_to_Window.triggered.connect(self.fits.zoomFit)
         ui.actionZoom.triggered.connect(self.fits.zoom)
         ui.actionPan.triggered.connect(self.fits.pan)
-        ui.actionNext.triggered.connect(self.next)
+        ui.actionNext.triggered.connect(self.__next__)
         ui.actionPrevious.triggered.connect(self.previous)
         ui.actionQuit.triggered.connect(self.quit)
         ui.actionLoadSession.triggered.connect(self.loadSession)
@@ -198,10 +203,27 @@ class FitsViewer(QtGui.QApplication):
         self.fits.draw()
 
     def showTransition(self):
-        pass
+        files = [str(self.model.item(i).fn) for i in range(self.model.rowCount())]
+        apertures = self.fits.apertures
+        data = do_photometry(files, apertures)
+        return data
 
     def exportTransition(self):
-        pass
+        filen = QtGui.QFileDialog.getOpenFileName(caption='Save Transition Data')
+        if filen == '':
+            return
+
+        timestamp = datetime.now().isoformat()
+        self._loadSessionConcrete(filen)
+        files = [str(self.model.item(i).fn) for i in range(self.model.rowCount())]
+        apertures = self.fits.apertures
+        data = do_photometry(files, apertures)
+
+        f = open(filen)
+        f.write('# Performed at {}'.format(timestamp))
+        f.write('HEADER FIELDS')
+        savetxt(f, data)
+        f.close()
 
     def addFiles(self, *args, **kwargs):
         """
@@ -226,7 +248,7 @@ class FitsViewer(QtGui.QApplication):
         except IndexError:
             pass
 
-    def next(self):
+    def __next__(self):
         """
         Select next file in list
         """

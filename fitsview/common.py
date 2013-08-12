@@ -57,7 +57,7 @@ def get_colour_maps():
     """
     Get the list of available colour maps from the matplotlib library
     """
-    maps = matplotlib.cm.datad.keys()
+    maps = list(matplotlib.cm.datad.keys())
     maps.sort(key=str.lower)
     return maps
 

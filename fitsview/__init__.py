@@ -1,2 +1,2 @@
-from application import FitsViewer
-from fitsview import FitsView
+from .application import FitsViewer
+from .fitsview import FitsView

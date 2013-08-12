@@ -23,8 +23,8 @@ class ApertureWrapper(QtCore.QObject, Aperture):
     def __init__(self, x, y, r=10, br=20, name='Aperture'):
         QtCore.QObject.__init__(self)
         Aperture.__init__(self, x, y, r, br, name)
-        self.inner = Circle((x, y), r, edgecolor='yellow', facecolor='none')
-        self.outer = Circle((x, y), br, linestyle='dotted', edgecolor='yellow', facecolor='none')
+        self.inner = Circle((x, y), r, linewidth=1.0, edgecolor='yellow', facecolor='none')
+        self.outer = Circle((x, y), br, linewidth=0.5, ls='dotted', edgecolor='yellow', facecolor='none')
 
     def refresh(self):
         self.outer.center = self.inner.center = (self.x, self.y)

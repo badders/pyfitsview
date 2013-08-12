@@ -1,1 +1,0 @@
-def do_photometry

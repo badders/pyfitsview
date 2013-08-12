@@ -13,6 +13,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
+import matplotlib
+matplotlib.rcParams['backend.qt4'] = 'PyQt4'
+matplotlib.use('Qt4Agg')
+
 from fitsview import FitsViewer
 import sys
 import os
@@ -28,7 +32,7 @@ def safe_remove(args, arg):
 def main():
     app = FitsViewer(sys.argv)
     args = app.arguments()
-    
+
     # Strip first argument if running on windows
     args = list(args)
     if os.name == 'nt':
