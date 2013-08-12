@@ -46,7 +46,6 @@ class FitsViewer(QtGui.QApplication):
         QtGui.QApplication.__init__(self, *args, **kwargs)
         ui = uic.loadUi(get_ui_file('viewer.ui'))
         self.ui = ui
-        ui.show()
 
         self.about_ui = uic.loadUi(get_ui_file('about.ui'))
         self.fits = FitsView()
