@@ -138,6 +138,7 @@ class FitsViewer(QtGui.QApplication):
         self._load_timer.timeout.connect(self._setFileConcrete)
 
         ui.show()
+        ui.raise_()
         self.loadConfig()
 
     def updateStatus(self, x, y, value, ra_d, dec_d):
