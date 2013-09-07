@@ -251,7 +251,7 @@ class FitsView(FigureCanvasQTAgg):
             if x < 0 or y < 0:
                 value = None
             else:
-                value = self._gc._data[480 - y][x]
+                value = self._gc._data[self._gc._data.shape[0] - y][x]
         except IndexError:
             value = None
         self.hoverSignal.emit(x, y, value, ra, dec)
