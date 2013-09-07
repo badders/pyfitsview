@@ -68,6 +68,34 @@ def use_camera():
     """
     return _USE_CAMERA
 
+def ra_to_str(ra):
+    """
+    Convert right ascension to a pretty printed string
+    ra -- Right ascension from astropy.coordinates
+    Returns string like ±18d26m32s
+    """
+    ra = int(abs(ra * 3600))
+    h, m, s = ra // 3600, (ra // 60) % 60, ra % 60
+    if ra < 0:
+        sign = '-'
+    else:
+        sign = '+'
+    return '{}{:02d}h{:02d}m{:02d}s'.format(sign, h, m, s)
+
+
+def dec_to_str(dec):
+    """
+    Convert right ascension to a pretty printed string
+    dec -- Declination from astropy.coordinates
+    Returns string like ±18d26m32s
+    """
+    dec = int(abs(dec * 3600))
+    d, m, s = dec // 3600, (dec // 60) % 60, dec % 60
+    if dec < 0:
+        sign = '-'
+    else:
+        sign = '+'
+    return '{}{:02d}d{:02d}m{:02d}s'.format(sign, d, m, s)
 
 class FileItem(QtGui.QStandardItem):
     def __init__(self, fn):

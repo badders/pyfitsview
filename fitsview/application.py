@@ -147,8 +147,8 @@ class FitsViewer(QtGui.QApplication):
         """
         try:
             coord = coordinates.ICRSCoordinates(ra=ra_d, dec=dec_d, unit=(units.degree, units.degree))
-            ra_str = coord.ra.format(units.hour)
-            dec_str = coord.dec.format(units.degree, alwayssign=True)
+            ra_str = ra_to_str(coord.ra.hours)
+            dec_str = dec_to_str(coord.dec.degrees)
         except coordinates.errors.BoundsError:
             ra_str = ''
             dec_str = ''
@@ -203,10 +203,18 @@ class FitsViewer(QtGui.QApplication):
         self.fits.draw()
 
     def showTransition(self):
+        from matplotlib import pyplot as plt
+        import numpy as np
         files = [str(self.model.item(i).fn) for i in range(self.model.rowCount())]
         apertures = self.fits.apertures
         data = do_photometry(files, apertures)
-        return data
+        x = np.arange(data.shape[0])
+        plt.figure()
+        for i in range(0, len(data) // 2, 2):
+            y = data[:,i]
+            y_err = data[:,i+1]
+            plt.errorbar(x, y - y.mean(), yerr=y_err)
+        plt.show()
 
     def exportTransition(self):
         filen = QtGui.QFileDialog.getOpenFileName(caption='Save Transition Data')
