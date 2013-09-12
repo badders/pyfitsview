@@ -207,13 +207,59 @@ class FitsViewer(QtGui.QApplication):
         import numpy as np
         files = [str(self.model.item(i).fn) for i in range(self.model.rowCount())]
         apertures = self.fits.apertures
+        
+        if len(apertures) < 2:
+            msgbox = QtGui.QMessageBox()
+            msgbox.setText('Not Enough Apertures')
+            msgbox.setInformativeText('Previewing a transition requires one main aperture and at least one calibration aperture')
+            msgbox.setStandardButtons(QtGui.QMessageBox.Ok)
+            msgbox.exec_()
+            return
+
         data = do_photometry(files, apertures)
         x = np.arange(data.shape[0])
         plt.figure()
-        for i in range(0, len(data) // 2, 2):
+        ys = []
+        y_errs = []
+       
+        # Extract values and errors
+        for i in range(0, data.shape[1], 2):
             y = data[:,i]
             y_err = data[:,i+1]
-            plt.errorbar(x, y - y.mean(), yerr=y_err)
+            ys.append(y)
+            y_errs.append(y_err)
+
+        # Calibrate and scale to percentages
+        main, calibrations = ys[0], ys[1:]
+        main_err, calibrations_err = y_errs[0], y_errs[1:]
+        
+        calibrated_data = []
+        calibrated_data_err = []
+
+        for i in range(len(calibrations)):
+            calibrated = (main / calibrations[i])
+            factor = 100 / calibrated.mean()
+            calibrated = calibrated * factor
+            calibrated_err = (main_err / calibrations[i]) * factor
+            calibrated_data.append(calibrated)
+            calibrated_data_err.append(calibrated_err)
+            plt.errorbar(x, calibrated, linestyle='x', yerr=calibrated_err)
+        
+        calibrated_sum = np.zeros_like(calibrated_data[0])
+        error_sum = np.zeros_like(calibrated_data_err[0])
+        
+        for i in range(len(calibrated_data)):
+            calibrated_sum += calibrated_data[i]
+            error_sum += calibrated_data_err[i]
+
+        n = len(calibrated_data)
+        calibrated_avg = calibrated_sum / n
+        error_avg = error_sum / n
+
+        plt.errorbar(x, calibrated_avg, yerr=error_avg)
+
+        xlim = plt.xlim()
+        plt.xlim((-2, xlim[1]))
         plt.show()
 
     def exportTransition(self):
