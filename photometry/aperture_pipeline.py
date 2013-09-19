@@ -13,7 +13,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
-from __future__ import division
+from __future__ import print_function, unicode_literals, division
 import numpy as np
 import math
 from matplotlib import pyplot as plt
@@ -110,7 +110,7 @@ if __name__ == '__main__':
     ap = Aperture(614.96, 806.929, 10.0, 20.0)
     data = do_photometry(fs, [ap])
 
-    print data.shape
+    print(data.shape)
     plt.figure()
     y = data[:,0]
     y_err = data[:,1]
