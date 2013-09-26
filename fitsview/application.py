@@ -452,11 +452,10 @@ class FitsViewer(QtGui.QApplication):
         """
         settings = self._getSettings()
         settings.beginGroup('Window')
-        self.ui.restoreGeometry(settings.value('geometry', self.ui.saveGeometry()).toPyObject())
-        settings.endGroup()
+        self.ui.restoreGeometry(settings.value('geometry', self.ui.saveGeometry(), type='QByteArray'))
 
         # Populate recent file list
-        self.recent_files = settings.value('Files/recent', []).toPyObject()
+        self.recent_files = settings.value('Files/recent', [], type='QStringList')
         if self.recent_files is None:
             self.recent_files = []
         else:
