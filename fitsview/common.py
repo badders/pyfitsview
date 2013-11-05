@@ -100,6 +100,6 @@ def dec_to_str(dec):
 
 class FileItem(QtGui.QStandardItem):
     def __init__(self, fn):
-        dn = os.path.basename(str(fn))[:-5]
+        dn = os.path.basename(str(fn))
         super(FileItem, self).__init__(dn)
         self.fn = fn

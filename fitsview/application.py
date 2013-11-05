@@ -286,7 +286,7 @@ class FitsViewer(QtGui.QApplication):
         Supply keyword argument 'files' or it will open a file open dialog
         """
         if not 'files' in kwargs:
-            files = QtGui.QFileDialog.getOpenFileNames(caption='Load Fits File', filter='*.fits')
+            files = QtGui.QFileDialog.getOpenFileNames(caption='Load Fits File', filter='Fits (*.fits *.fit)')
         else:
             files = kwargs['files']
         for fn in files:
