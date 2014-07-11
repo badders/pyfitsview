@@ -2,5 +2,4 @@ APLpy
 astropy
 matplotlib
 numpy
-pyserial
-pyqt
+pyside

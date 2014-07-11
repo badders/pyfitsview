@@ -15,7 +15,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
 from __future__ import print_function, unicode_literals, division
 import matplotlib
-matplotlib.rcParams['backend.qt4'] = 'PyQt4'
+matplotlib.rcParams['backend.qt4'] = 'PySide'
 matplotlib.use('Qt4Agg')
 
 from fitsview import FitsViewer

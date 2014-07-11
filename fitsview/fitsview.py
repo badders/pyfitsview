@@ -21,9 +21,8 @@ from matplotlib.figure import Figure
 import astropy.io.fits as fits
 import aplpy
 import dateutil
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui, QtCore
 from functools import wraps
-from .aperture import ApertureWrapper as Aperture
 from .common import *
 
 
@@ -94,15 +93,6 @@ class FitsView(FigureCanvasQTAgg):
             self._gc.ticks.hide()
             self._gc.frame.set_linewidth(0)
 
-    def _drawAperture(self, ap):
-        ax = self._fig.gca()
-        ap.addToAxes(ax)
-
-    def drawApertures(self):
-        for ap in self.apertures:
-            self._drawAperture(ap)
-        self.draw()
-
     def startDrag(self, event):
         for a in self.apertures:
             if a.contains(event):
@@ -130,7 +120,6 @@ class FitsView(FigureCanvasQTAgg):
         """
         self._fig.clear()
         self._gc = aplpy.FITSFigure(filename, figure=self._fig)
-        self.drawApertures()
 
     @refresh
     def takeImage(self, exposure, progress, dev='/dev/tty.usberial'):

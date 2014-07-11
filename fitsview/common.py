@@ -14,16 +14,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
 from __future__ import print_function, unicode_literals, division
-try:
-    from serial.tools import list_ports
-    from allsky import AllSkyCamera
-    _USE_CAMERA = True
-except ImportError:
-    _USE_CAMERA = False
-
 import os
 import matplotlib
-from PyQt4 import QtGui
+from PySide import QtGui
 import __main__
 
 
@@ -41,19 +34,6 @@ def get_config_file():
     return os.path.join(os.environ['HOME'], '.fitsview')
 
 
-def list_serial_ports():
-    """
-    Helper function to get a list of serial ports.
-    Currently strips out bluetooth ports
-    """
-    ports = []
-    for x in list_ports.comports():
-        port = x[0]
-        if port.count('Bluetooth') == 0:
-            ports.append(port)
-    return ports
-
-
 def get_colour_maps():
     """
     Get the list of available colour maps from the matplotlib library
@@ -62,12 +42,6 @@ def get_colour_maps():
     maps.sort(key=str.lower)
     return maps
 
-
-def use_camera():
-    """
-    Returns true if the libraries required to use the AllSky camera are available
-    """
-    return _USE_CAMERA
 
 def ra_to_str(ra):
     """

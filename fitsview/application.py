@@ -16,10 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 from __future__ import print_function, unicode_literals, division
 from astropy import coordinates
 from astropy import units
-from PyQt4 import QtGui, QtCore, uic
+from PySide import QtGui, QtCore, QtUiTools
 from functools import wraps
-from .fitsview import FitsView, Aperture
-from photometry import do_photometry
+from .fitsview import FitsView
 from numpy import savetxt
 from datetime import datetime
 import simplejson as json
@@ -45,28 +44,17 @@ class FitsViewer(QtGui.QApplication):
 
     def __init__(self, *args, **kwargs):
         QtGui.QApplication.__init__(self, *args, **kwargs)
-        ui = uic.loadUi(get_ui_file('viewer.ui'))
+        ui = QtUiTools.QUiLoader().load(get_ui_file('viewer.ui'))
+        print(QtUiTools.QUiLoader().workingDirectory())
         self.ui = ui
-
-        self.about_ui = uic.loadUi(get_ui_file('about.ui'))
+        self.about_ui = QtUiTools.QUiLoader().load(get_ui_file('about.ui'))
         self.fits = FitsView()
         self.fits.hoverSignal.connect(self.updateStatus)
-        self.fits.selectSignal.connect(self.apertureSelectionChanged)
         self._session_file = None
         ui.setCentralWidget(self.fits)
-
+        
         ui.setWindowIcon(QtGui.QIcon(get_ui_file('icon.svg')))
 
-        # Optional AllSky camera tools
-        if use_camera():
-            ports = list_serial_ports()
-            if len(ports) == 0:
-                ui.allSkyControls.hide()
-            else:
-                ui.portChoice.addItems(ports)
-                ui.takeImage.clicked.connect(self.takeImage)
-        else:
-            ui.allSkyControls.hide()
 
         # Display tools
         ui.normalisation.addItems(list(self.fits.getScales().keys()))
@@ -93,20 +81,11 @@ class FitsViewer(QtGui.QApplication):
         ui.actionLoadSession.triggered.connect(self.loadSession)
         ui.actionSaveSession.triggered.connect(self.saveSession)
 
-        # Aperture Tools
-        ui.apertureCreate.clicked.connect(self.addAperture)
-        ui.apertureList.currentIndexChanged.connect(self.apertureIndexChanged)
-        ui.apertureList.editTextChanged.connect(self.apertureRename)
-        ui.apertureRadius.valueChanged.connect(self.apertureRadiusChange)
-        ui.apertureBGRadius.valueChanged.connect(self.apertureBGRadiusChange)
-        ui.actionPreviewTransition.triggered.connect(self.showTransition)
-        ui.actionExportTransitionData.triggered.connect(self.exportTransition)
-
         # Populate visible docks
         ui.menuDisplay.addAction(ui.displayDock.toggleViewAction())
-        ui.menuDisplay.addAction(ui.toolsDock.toggleViewAction())
         ui.menuDisplay.addAction(ui.fileDock.toggleViewAction())
-
+        
+        
         # Create recent file actions
         self.recent_file_acts = []
         for i in range(self.MaxRecentFiles):
@@ -119,6 +98,7 @@ class FitsViewer(QtGui.QApplication):
         self.aboutToQuit.connect(self.saveConfig)
         self.aboutToQuit.connect(self._autoSaveSession)
 
+        
         # Connect matplot zoom/pan tools
         self.fits._mpl_toolbar._actions['pan'].toggled.connect(self.panUpdate)
         self.fits._mpl_toolbar._actions['zoom'].toggled.connect(self.zoomUpdate)
@@ -129,9 +109,9 @@ class FitsViewer(QtGui.QApplication):
 
         self.model = QtGui.QStandardItemModel()
         ui.fileList.setModel(self.model)
-        ui.fileList.selectionModel().selectionChanged.connect(self.setSelection)
 
-        ui.tabifyDockWidget(ui.toolsDock, ui.displayDock)
+        # FIXME: Currently crashes python3/pyside
+        #ui.fileList.selectionModel().selectionChanged.connect(self.setSelection)
 
         # Create image load throttler
         self._load_timer = QtCore.QTimer()
@@ -168,117 +148,6 @@ class FitsViewer(QtGui.QApplication):
 
     def scaleChange(self, index):
         self.fits.setScale(self.ui.normalisation.itemText(index))
-
-    def addAperture(self):
-        self.fits.newAperture()
-        self.ui.apertureList.clear()
-        apertures = self.fits.apertures
-        self.ui.apertureList.addItems([a.name for a in apertures])
-        self.ui.apertureList.setCurrentIndex(len(apertures) - 1)
-
-    def apertureIndexChanged(self, index):
-        aperture = self.fits.apertures[index]
-        self.ui.apertureRadius.setValue(aperture.r)
-        self.ui.apertureBGRadius.setValue(aperture.br)
-
-    def apertureRename(self, name):
-        aperture = self.fits.apertures[self.ui.apertureList.currentIndex()]
-        aperture.name = name
-
-    def apertureSelectionChanged(self, ap):
-        apertures = self.fits.apertures
-        for i in range(len(apertures)):
-            if apertures[i] is ap:
-                self.ui.apertureList.setCurrentIndex(i)
-
-    def apertureRadiusChange(self, value):
-        aperture = self.fits.apertures[self.ui.apertureList.currentIndex()]
-        aperture.r = value
-        aperture.refresh()
-        self.fits.draw()
-
-    def apertureBGRadiusChange(self, value):
-        aperture = self.fits.apertures[self.ui.apertureList.currentIndex()]
-        aperture.br = value
-        aperture.refresh()
-        self.fits.draw()
-
-    def showTransition(self):
-        from matplotlib import pyplot as plt
-        import numpy as np
-        files = [str(self.model.item(i).fn) for i in range(self.model.rowCount())]
-        apertures = self.fits.apertures
-        
-        if len(apertures) < 2:
-            msgbox = QtGui.QMessageBox()
-            msgbox.setText('Not Enough Apertures')
-            msgbox.setInformativeText('Previewing a transition requires one main aperture and at least one calibration aperture')
-            msgbox.setStandardButtons(QtGui.QMessageBox.Ok)
-            msgbox.exec_()
-            return
-
-        data = do_photometry(files, apertures)
-        x = np.arange(data.shape[0])
-        plt.figure()
-        ys = []
-        y_errs = []
-       
-        # Extract values and errors
-        for i in range(0, data.shape[1], 2):
-            y = data[:,i]
-            y_err = data[:,i+1]
-            ys.append(y)
-            y_errs.append(y_err)
-
-        # Calibrate and scale to percentages
-        main, calibrations = ys[0], ys[1:]
-        main_err, calibrations_err = y_errs[0], y_errs[1:]
-        
-        calibrated_data = []
-        calibrated_data_err = []
-
-        for i in range(len(calibrations)):
-            calibrated = (main / calibrations[i])
-            factor = 100 / calibrated.mean()
-            calibrated = calibrated * factor
-            calibrated_err = (main_err / calibrations[i]) * factor
-            calibrated_data.append(calibrated)
-            calibrated_data_err.append(calibrated_err)
-            plt.errorbar(x, calibrated, linestyle='x', yerr=calibrated_err)
-        
-        calibrated_sum = np.zeros_like(calibrated_data[0])
-        error_sum = np.zeros_like(calibrated_data_err[0])
-        
-        for i in range(len(calibrated_data)):
-            calibrated_sum += calibrated_data[i]
-            error_sum += calibrated_data_err[i]
-
-        n = len(calibrated_data)
-        calibrated_avg = calibrated_sum / n
-        error_avg = error_sum / n
-
-        plt.errorbar(x, calibrated_avg, yerr=error_avg)
-
-        xlim = plt.xlim()
-        plt.xlim((-2, xlim[1]))
-        plt.show()
-
-    def exportTransition(self):
-        filen = QtGui.QFileDialog.getOpenFileName(caption='Save Transition Data')
-        if filen == '':
-            return
-
-        timestamp = datetime.now().isoformat()
-        self._loadSessionConcrete(filen)
-        files = [str(self.model.item(i).fn) for i in range(self.model.rowCount())]
-        apertures = self.fits.apertures
-        data = do_photometry(files, apertures)
-
-        f = open(filen)
-        f.write('# Performed at {}'.format(timestamp))
-        f.write('HEADER FIELDS')
-        savetxt(f, data)
-        f.close()
 
     def addFiles(self, *args, **kwargs):
         """
@@ -372,14 +241,6 @@ class FitsViewer(QtGui.QApplication):
         except KeyError:
             logging.warning('files section missing or corrupted in session file')
 
-        try:
-            apertures = [Aperture.fromDict(ap) for ap in session['apertures']]
-            self.fits.setApertures(apertures)
-            self.ui.apertureList.clear()
-            self.ui.apertureList.addItems([a.name for a in apertures])
-        except KeyError:
-            logging.warning('apertures section missing or corrupted in session file')
-
     def _addRecentFile(self, filen):
         """
         Add a filename to the recent files list
@@ -427,11 +288,9 @@ class FitsViewer(QtGui.QApplication):
             'scale': self.ui.normalisation.currentIndex()
         }
         files = [str(self.model.item(i).fn) for i in range(self.model.rowCount())]
-        apertures = [ap.toDict() for ap in self.fits.apertures]
         session = {
             'display': display,
             'files': files,
-            'apertures': apertures
         }
         json.dump(session, f)
         f.close()
@@ -452,10 +311,15 @@ class FitsViewer(QtGui.QApplication):
         """
         settings = self._getSettings()
         settings.beginGroup('Window')
-        self.ui.restoreGeometry(settings.value('geometry', self.ui.saveGeometry(), type='QByteArray'))
-
+        try:
+            self.ui.restoreGeometry(settings.value('geometry', self.ui.saveGeometry(), type='QByteArray'))
+        except TypeError:
+            pass
         # Populate recent file list
-        self.recent_files = settings.value('Files/recent', [], type='QStringList')
+        try:
+            self.recent_files = settings.value('Files/recent', [], type='QStringList')
+        except TypeError:
+            self.recent_files = None
         if self.recent_files is None:
             self.recent_files = []
         else:
@@ -503,26 +367,3 @@ class FitsViewer(QtGui.QApplication):
             self.fits.saveImage(str(filen), export=True)
             self.status.showMessage('Exported to {}'.format(str(filen)))
 
-    def takeImage(self):
-        """
-        Take an image with the allsky camera
-        """
-        port = str(self.ui.portChoice.currentText())
-        self.progress = QtGui.QProgressDialog('Downloading Image from Camera ...', '', 0, 0)
-        self.progress.setCancelButton(None)
-        self.progress.setValue(0)
-        self.progress.setMinimum(0)
-        self.progress.setMaximum(100.0)
-        self.progress.setModal(True)
-        self.progress.show()
-        QtGui.QApplication.processEvents()
-        self.fits.takeImage(self.ui.exposureTime.value(), self._takeImageProgress, dev=port)
-        self.progress.hide()
-        self.status.setText('')
-
-    def _takeImageProgress(self, percent):
-        """
-        Callback for updating the image taking progress
-        """
-        self.progress.setValue(percent)
-        QtGui.QApplication.processEvents()
