@@ -9,13 +9,13 @@ Binary downloads available [here](https://github.com/badders/pyfitsview/releases
 
 Requirements
 ------------
-* [Qt library v4](http://qt-project.org/downloads)
-* [Python 2.7](http://python.org)
+* [Qt library v5](http://qt-project.org/downloads)
+* [Python 3.4](http://python.org)
 
 Python package requirements
 -------------------
 * [pyallsky](http://github.com/badders/pyallsky) (Optional)
-* [PyQt4](http://www.riverbankcomputing.com/software/pyqt/download)
+* [PyQt5](http://www.riverbankcomputing.com/software/pyqt/download)
 * [NumPy](http://www.numpy.org/)
 * [matplotlib](http://matplotlib.org/)
 * [astropy](https://astropy.readthedocs.org/en/stable/)
