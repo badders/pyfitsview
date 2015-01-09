@@ -15,13 +15,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 """
 from __future__ import print_function, unicode_literals, division
 from collections import OrderedDict
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
-from matplotlib.backends.backend_qt4agg import NavigationToolbar2QTAgg
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QTAgg
 from matplotlib.figure import Figure
 import astropy.io.fits as fits
 import aplpy
 import dateutil
-from PySide import QtGui, QtCore
+from PyQt5 import QtGui, QtWidgets, QtCore
 from functools import wraps
 from .common import *
 
@@ -55,8 +55,8 @@ class FitsView(FigureCanvasQTAgg):
         self._fig = Figure(dpi=170)
         FigureCanvasQTAgg.__init__(self, self._fig)
         FigureCanvasQTAgg.setSizePolicy(self,
-                                        QtGui.QSizePolicy.Expanding,
-                                        QtGui.QSizePolicy.Expanding)
+                                        QtWidgets.QSizePolicy.Expanding,
+                                        QtWidgets.QSizePolicy.Expanding)
         self._fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
         self._mpl_toolbar = NavigationToolbar2QTAgg(self, self)
         self._mpl_toolbar.hide()

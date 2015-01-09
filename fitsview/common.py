@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 from __future__ import print_function, unicode_literals, division
 import os
 import matplotlib
-from PySide import QtGui
+from PyQt5 import QtGui
 import __main__
 
 

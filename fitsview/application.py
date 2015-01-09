@@ -16,18 +16,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>
 from __future__ import print_function, unicode_literals, division
 from astropy import coordinates
 from astropy import units
-from PySide import QtGui, QtCore, QtUiTools
+from PyQt5 import QtGui, QtCore, QtWidgets, uic
 from functools import wraps
 from .fitsview import FitsView
-from numpy import savetxt
-from datetime import datetime
 import simplejson as json
 import logging
-import os
 from .common import *
 
 
-class FitsViewer(QtGui.QApplication):
+class FitsViewer(QtWidgets.QApplication):
     """
     Application User interface
     """
@@ -43,11 +40,11 @@ class FitsViewer(QtGui.QApplication):
         return _hasImage
 
     def __init__(self, *args, **kwargs):
-        QtGui.QApplication.__init__(self, *args, **kwargs)
-        ui = QtUiTools.QUiLoader().load(get_ui_file('viewer.ui'))
-        print(QtUiTools.QUiLoader().workingDirectory())
+        QtWidgets.QApplication.__init__(self, *args, **kwargs)
+        ui = uic.loadUi(get_ui_file('viewer.ui'))
+
         self.ui = ui
-        self.about_ui = QtUiTools.QUiLoader().load(get_ui_file('about.ui'))
+        self.about_ui = uic.loadUi(get_ui_file('about.ui'))
         self.fits = FitsView()
         self.fits.hoverSignal.connect(self.updateStatus)
         self._session_file = None
@@ -89,7 +86,7 @@ class FitsViewer(QtGui.QApplication):
         # Create recent file actions
         self.recent_file_acts = []
         for i in range(self.MaxRecentFiles):
-            self.recent_file_acts.append(QtGui.QAction(self, visible=False,
+            self.recent_file_acts.append(QtWidgets.QAction(self, visible=False,
                                          triggered=self.loadRecentSession))
 
         for i in range(self.MaxRecentFiles):
@@ -103,15 +100,14 @@ class FitsViewer(QtGui.QApplication):
         self.fits._mpl_toolbar._actions['pan'].toggled.connect(self.panUpdate)
         self.fits._mpl_toolbar._actions['zoom'].toggled.connect(self.zoomUpdate)
 
-        self.status = QtGui.QLabel()
+        self.status = QtWidgets.QLabel()
         self.status.setText('No Image Loaded')
         ui.statusBar().addWidget(self.status)
 
         self.model = QtGui.QStandardItemModel()
         ui.fileList.setModel(self.model)
 
-        # FIXME: Currently crashes python3/pyside
-        #ui.fileList.selectionModel().selectionChanged.connect(self.setSelection)
+        ui.fileList.selectionModel().selectionChanged.connect(self.setSelection)
 
         # Create image load throttler
         self._load_timer = QtCore.QTimer()
@@ -127,9 +123,9 @@ class FitsViewer(QtGui.QApplication):
         Fetch information and update status bar text
         """
         try:
-            coord = coordinates.ICRSCoordinates(ra=ra_d, dec=dec_d, unit=(units.degree, units.degree))
-            ra_str = ra_to_str(coord.ra.hours)
-            dec_str = dec_to_str(coord.dec.degrees)
+            coord = coordinates.SkyCoord(ra=ra_d, dec=dec_d, unit=(units.degree, units.degree))
+            ra_str = ra_to_str(coord.ra.hour)
+            dec_str = dec_to_str(coord.dec.degree)
         except coordinates.errors.BoundsError:
             ra_str = ''
             dec_str = ''
@@ -155,7 +151,7 @@ class FitsViewer(QtGui.QApplication):
         Supply keyword argument 'files' or it will open a file open dialog
         """
         if not 'files' in kwargs:
-            files = QtGui.QFileDialog.getOpenFileNames(caption='Load Fits File', filter='Fits (*.fits *.fit)')
+            files, _ = QtWidgets.QFileDialog.getOpenFileNames(caption='Load Fits File', filter='Fits (*.fits *.fit)')
         else:
             files = kwargs['files']
         for fn in files:
@@ -257,7 +253,7 @@ class FitsViewer(QtGui.QApplication):
         """
         Show open dialog  and load a session file
         """
-        filen = QtGui.QFileDialog.getOpenFileName(caption='Save Session')
+        filen = QtWidgets.QFileDialog.getOpenFileName(caption='Save Session')
         if filen != '':
             self._loadSessionConcrete(filen)
 
@@ -300,7 +296,7 @@ class FitsViewer(QtGui.QApplication):
         """
         Open a dialog and save the current sesion
         """
-        filen = QtGui.QFileDialog.getSaveFileName(caption='Save Session')
+        filen = QtWidgets.QFileDialog.getSaveFileName(caption='Save Session')
         if filen != '':
             self._session_file = filen
             self._saveSessionConcrete(filen)
@@ -352,7 +348,7 @@ class FitsViewer(QtGui.QApplication):
         """
         Open a dialog and save the curent fits image
         """
-        filen = QtGui.QFileDialog.getSaveFileName(caption='Save Fits File')
+        filen = QtWidgets.QFileDialog.getSaveFileName(caption='Save Fits File')
         if filen != '':
             self.fits.saveImage(str(filen))
             self.status.showMessage('Saved to {}'.format(str(filen)))
@@ -362,7 +358,7 @@ class FitsViewer(QtGui.QApplication):
         """
         Open a dialog and export the current the image
         """
-        filen = QtGui.QFileDialog.getSaveFileName(caption='Export to File')
+        filen = QtWidgets.QFileDialog.getSaveFileName(caption='Export to File')
         if filen != '':
             self.fits.saveImage(str(filen), export=True)
             self.status.showMessage('Exported to {}'.format(str(filen)))
