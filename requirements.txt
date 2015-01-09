@@ -2,4 +2,4 @@ APLpy
 astropy
 matplotlib
 numpy
-pyside
+PyQt5
