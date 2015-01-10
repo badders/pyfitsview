@@ -52,7 +52,6 @@ class FitsViewer(QtWidgets.QApplication):
         
         ui.setWindowIcon(QtGui.QIcon(get_ui_file('icon.svg')))
 
-
         # Display tools
         ui.normalisation.addItems(list(self.fits.getScales().keys()))
         ui.normalisation.currentIndexChanged.connect(self.scaleChange)

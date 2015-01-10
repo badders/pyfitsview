@@ -76,12 +76,6 @@ class FitsView(FigureCanvasQTAgg):
         self._refresh_timer.setSingleShot(True)
         self._refresh_timer.timeout.connect(self._refreshConcrete)
         self.apertures = []
-        self.dragging = None
-
-        # Conect Drag events
-        self.mpl_connect('button_press_event', self.startDrag)
-        self.mpl_connect('button_release_event', self.stopDrag)
-        self.mpl_connect('motion_notify_event', self.dragMotion)
 
     def _refreshConcrete(self):
         if self._gc:
@@ -92,25 +86,6 @@ class FitsView(FigureCanvasQTAgg):
             self._gc.tick_labels.hide()
             self._gc.ticks.hide()
             self._gc.frame.set_linewidth(0)
-
-    def startDrag(self, event):
-        for a in self.apertures:
-            if a.contains(event):
-                self.dragging = a
-                self.selectSignal.emit(a)
-                return
-
-    def stopDrag(self, event):
-        self.dragging = None
-
-    def dragMotion(self, event):
-        if self.dragging is None:
-            return
-
-        self.dragging.x = event.xdata
-        self.dragging.y = event.ydata
-        self.dragging.refresh()
-        self.draw()
 
     @refresh
     def loadImage(self, filename):
@@ -146,18 +121,6 @@ class FitsView(FigureCanvasQTAgg):
 
     def getImageExposure(self):
         return self._gc._header['EXPOSURE']
-
-    @hasImage
-    def newAperture(self):
-        x, y = self._gc._data.shape
-        ap = Aperture(x / 2.0, y / 2.0)
-        ap.name = "Aperture {}".format(len(self.apertures) + 1)
-        self.apertures.append(ap)
-        self._drawAperture(ap)
-        self.draw()
-
-    def setApertures(self, apertures):
-        self.apertures = apertures
 
     @refresh
     def setCMAP(self, cmap):
